@@ -1,0 +1,4 @@
+bin/*
+data/*
+.classpath
+.project
