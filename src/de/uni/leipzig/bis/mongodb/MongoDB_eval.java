@@ -17,7 +17,16 @@ import com.mongodb.MongoException;
 
 import de.uni.leipzig.bis.mongodb.MongoDB_Queries.DataType;
 
-public class MongoDB_eval {
+/**
+ * This project is an evaluation of MongoDB for a usecase where time series data
+ * (up to 30M measuring points) has to be stored and queried. Queries are simple
+ * range queries (from - to timestamp) and simple filters, like
+ * "all data from station x" or "all days where x was greater then y".
+ * 
+ * @author s1ck
+ * 
+ */
+public class MongoDB_Eval {
 
 	/**
 	 * Database specific settings

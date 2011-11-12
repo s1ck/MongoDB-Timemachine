@@ -6,6 +6,12 @@ import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
 
+/**
+ * A collection of MongoDB Queries on timeseries data.
+ * 
+ * @author s1ck
+ * 
+ */
 public class MongoDB_Queries {
 
 	/**
@@ -42,7 +48,7 @@ public class MongoDB_Queries {
 			long toTimestamp) {
 		// get collection
 		DBCollection measCollection = mongoDB
-				.getCollection(MongoDB_eval.COLLECTION_MEASUREMENT);
+				.getCollection(MongoDB_Eval.COLLECTION_MEASUREMENT);
 
 		System.out.println("Query: Range Query 1");
 		System.out.println("********************");
@@ -75,7 +81,7 @@ public class MongoDB_Queries {
 			int treshold) {
 		// get collection
 		DBCollection measCollection = mongoDB
-				.getCollection(MongoDB_eval.COLLECTION_MEASUREMENT);
+				.getCollection(MongoDB_Eval.COLLECTION_MEASUREMENT);
 
 		System.out.println("Query: Treshold Query 1");
 		System.out.println("********************");
