@@ -1,0 +1,1 @@
+Avg document size db.$collection$.stats()

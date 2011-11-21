@@ -36,8 +36,39 @@ public class MongoDB_Eval {
 	public static final String DB = "BIS_mongo_eval";
 	public static final String COLLECTION_MEASUREMENT = "measurings";
 	public static final String COLLECTION_STATIONS = "stations";
-	public static final Integer BUFFER_SIZE = 10000;
+	public static final Integer BUFFER_SIZE = 20000;
 
+	/**
+	 * Value identifiers (should be as short as possible)
+	 */
+	public static final String TIMESTAMP = "timestamp";
+	public static final String VALUE = "value";
+	public static final String STATION_ID = "stationID";
+	public static final String PART_ID = "partID";
+	public static final String SERIAL_NO = "serialNo";
+	public static final String DATATYPE = "datatype";
+	public static final String OPT_STRING = "opt_string";
+	public static final String SERIAL_NO_2 = "serialNo2";
+	
+//	public static final String TIMESTAMP = "a";
+//	public static final String VALUE = "b";
+//	public static final String STATION_ID = "c";
+//	public static final String PART_ID = "d";
+//	public static final String SERIAL_NO = "e";
+//	public static final String DATATYPE = "f";
+//	public static final String OPT_STRING = "g";
+//	public static final String SERIAL_NO_2 = "h";
+	
+	
+	
+	/**
+	 * Datatypes
+	 */
+	public static final String PDC = "pdc";
+	public static final String UDC = "udc";
+	public static final String GAIN = "gain";
+	
+	
 	/**
 	 * Data paths
 	 */
@@ -60,8 +91,8 @@ public class MongoDB_Eval {
 			db.createCollection("stations", null);
 		}
 
-		// importMeasuringPoints(PATH_6M, db);
-		testMeasurementData(db, false);
+		importMeasuringPoints(PATH_6M, db);
+//		testMeasurementData(db, true);
 
 		// close connection
 		m.close();
@@ -80,11 +111,11 @@ public class MongoDB_Eval {
 		// create indices
 		if (useIndices) {
 			MongoDB_Queries.createIndex(mongoDB, COLLECTION_MEASUREMENT,
-					"timestamp");
+					TIMESTAMP);
 			MongoDB_Queries.createIndex(mongoDB, COLLECTION_MEASUREMENT,
-					"datatype");
+					DATATYPE);
 			MongoDB_Queries.createIndex(mongoDB, COLLECTION_MEASUREMENT,
-					"value");
+					VALUE);
 		}
 
 		// do some queries
@@ -94,10 +125,11 @@ public class MongoDB_Eval {
 		// drop indices
 		if (useIndices) {
 			MongoDB_Queries.dropIndex(mongoDB, COLLECTION_MEASUREMENT,
-					"timestamp");
+					TIMESTAMP);
 			MongoDB_Queries.dropIndex(mongoDB, COLLECTION_MEASUREMENT,
-					"datatype");
-			MongoDB_Queries.dropIndex(mongoDB, COLLECTION_MEASUREMENT, "value");
+					DATATYPE);
+			MongoDB_Queries.dropIndex(mongoDB, COLLECTION_MEASUREMENT, 
+					VALUE);
 		}
 	}
 
@@ -122,7 +154,7 @@ public class MongoDB_Eval {
 
 			System.out.println("importing data");
 			long start = System.currentTimeMillis();
-
+			long diff = 0L;
 			while ((line = bf.readLine()) != null) {
 				n++;
 				dbObjectPuffer.add(createDBObjectFromData(line));
@@ -130,13 +162,15 @@ public class MongoDB_Eval {
 					// store data and clear buffer
 					writeDataToDB(dbObjectPuffer, mongoDB);
 					dbObjectPuffer.clear();
-					System.out.print(".");
-					if (n / BUFFER_SIZE % 10 == 0)
-						System.out.printf(" %d documents inserted\n", n);
-
+//					System.out.print(".");
+					if (n / BUFFER_SIZE % 10 == 0) {
+						diff = System.currentTimeMillis() - start;
+//						System.out.printf(" %d documents inserted in %d seconds\n", n, diff);
+						System.out.printf("%d;%d\n", n, diff);
+					}
 				}
 			}
-			long diff = System.currentTimeMillis() - start;
+			diff = System.currentTimeMillis() - start;
 			System.out.printf(
 					"took %d seconds for %d documents (%d documents / s)",
 					diff / 1000, n, n / (diff / 1000));
@@ -160,28 +194,28 @@ public class MongoDB_Eval {
 
 		BasicDBObject dbObj = new BasicDBObject();
 		// timestamp
-		dbObj.put("timestamp", Long.parseLong(documentData[0]));
+		dbObj.put(TIMESTAMP, Long.parseLong(documentData[0]));
 		// value
-		dbObj.put("value", Integer.parseInt(documentData[1]));
+		dbObj.put(VALUE, Integer.parseInt(documentData[1]));
 		// identifier
 		String identifier = documentData[2];
 		if (identifier != null) {
 			String[] identifierData = identifier.split("\\.");
 			// station_ID (Anlagenname)
-			dbObj.put("stationID", identifierData[0]);
+			dbObj.put(STATION_ID, identifierData[0]);
 			// partID (Bauteilart)
-			dbObj.put("partID", identifierData[1]);
+			dbObj.put(PART_ID, identifierData[1]);
 			// serial number (laufende Nummer)
-			dbObj.put("serialNo", identifierData[2]);
+			dbObj.put(SERIAL_NO, Integer.parseInt(identifierData[2]));
 			// datatype (Datenart)
-			dbObj.put("datatype", identifierData[3]);
+			dbObj.put(DATATYPE, identifierData[3]);
 			// optional data
-			if (identifierData[3].equals("pdc")
-					|| identifierData[3].equals("udc")) {
+			if (identifierData[3].equals(PDC)
+					|| identifierData[3].equals(UDC)) {
 				// "string"
-				dbObj.put("opt1", identifierData[4]);
+				dbObj.put(OPT_STRING, identifierData[4]);
 				// serial number 2
-				dbObj.put("opt2", identifierData[5]);
+				dbObj.put(SERIAL_NO_2, identifierData[5]);
 			}
 		}
 		return dbObj;
