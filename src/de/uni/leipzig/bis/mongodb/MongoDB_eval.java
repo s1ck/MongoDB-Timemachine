@@ -15,7 +15,7 @@ import com.mongodb.DBObject;
 import com.mongodb.Mongo;
 import com.mongodb.MongoException;
 
-import de.uni.leipzig.bis.mongodb.MongoDB_Queries.DataType;
+import de.uni.leipzig.bis.mongodb.MongoDB_Config.DataType;
 
 /**
  * This project is an evaluation of MongoDB for a usecase where time series data
@@ -28,70 +28,22 @@ import de.uni.leipzig.bis.mongodb.MongoDB_Queries.DataType;
  */
 public class MongoDB_Eval {
 
-	/**
-	 * Database specific settings
-	 */
-	public static final String HOST = "localhost";
-	public static final Integer PORT = 27017;
-	public static final String DB = "BIS_mongo_eval";
-	public static final String COLLECTION_MEASUREMENT = "measurings";
-	public static final String COLLECTION_STATIONS = "stations";
-	public static final Integer BUFFER_SIZE = 20000;
-
-	/**
-	 * Value identifiers (should be as short as possible)
-	 */
-	public static final String TIMESTAMP = "timestamp";
-	public static final String VALUE = "value";
-	public static final String STATION_ID = "stationID";
-	public static final String PART_ID = "partID";
-	public static final String SERIAL_NO = "serialNo";
-	public static final String DATATYPE = "datatype";
-	public static final String OPT_STRING = "opt_string";
-	public static final String SERIAL_NO_2 = "serialNo2";
-	
-//	public static final String TIMESTAMP = "a";
-//	public static final String VALUE = "b";
-//	public static final String STATION_ID = "c";
-//	public static final String PART_ID = "d";
-//	public static final String SERIAL_NO = "e";
-//	public static final String DATATYPE = "f";
-//	public static final String OPT_STRING = "g";
-//	public static final String SERIAL_NO_2 = "h";
-	
-	
-	
-	/**
-	 * Datatypes
-	 */
-	public static final String PDC = "pdc";
-	public static final String UDC = "udc";
-	public static final String GAIN = "gain";
-	
-	
-	/**
-	 * Data paths
-	 */
-	public static final String PATH_380K = "data/380K.csv";
-	public static final String PATH_6M = "data/6mio.csv";
-	public static final String PATH_30M = "data/30nio.csv";
-
 	public static void main(String[] args) throws UnknownHostException,
 			MongoException {
 		// open connection
-		Mongo m = new Mongo(HOST, PORT);
+		Mongo m = new Mongo(MongoDB_Config.HOST, MongoDB_Config.PORT);
 		// chose database (will be created if not existing
-		DB db = m.getDB(DB);
+		DB db = m.getDB(MongoDB_Config.DB);
 
 		// create collections (if not existing)
-		if (db.getCollection(COLLECTION_MEASUREMENT) == null) {
-			db.createCollection(COLLECTION_MEASUREMENT, null);
+		if (db.getCollection(MongoDB_Config.COLLECTION_MEASURINGS) == null) {
+			db.createCollection(MongoDB_Config.COLLECTION_MEASURINGS, null);
 		}
-		if (db.getCollection(COLLECTION_STATIONS) == null) {
+		if (db.getCollection(MongoDB_Config.COLLECTION_STATIONS) == null) {
 			db.createCollection("stations", null);
 		}
 
-		importMeasuringPoints(PATH_6M, db);
+		importMeasuringPoints(MongoDB_Config.PATH_6M, db);
 //		testMeasurementData(db, true);
 
 		// close connection
@@ -110,26 +62,26 @@ public class MongoDB_Eval {
 	private static void testMeasurementData(DB mongoDB, boolean useIndices) {
 		// create indices
 		if (useIndices) {
-			MongoDB_Queries.createIndex(mongoDB, COLLECTION_MEASUREMENT,
-					TIMESTAMP);
-			MongoDB_Queries.createIndex(mongoDB, COLLECTION_MEASUREMENT,
-					DATATYPE);
-			MongoDB_Queries.createIndex(mongoDB, COLLECTION_MEASUREMENT,
-					VALUE);
+			MongoDB_Queries.createIndex(mongoDB, MongoDB_Config.COLLECTION_MEASURINGS,
+					MongoDB_Config.TIMESTAMP);
+			MongoDB_Queries.createIndex(mongoDB, MongoDB_Config.COLLECTION_MEASURINGS,
+					MongoDB_Config.DATATYPE);
+			MongoDB_Queries.createIndex(mongoDB, MongoDB_Config.COLLECTION_MEASURINGS,
+					MongoDB_Config.VALUE);
 		}
 
 		// do some queries
-		MongoDB_Queries.rangeQuery1(mongoDB, 1314277800000L, 1314282900000L);
-		MongoDB_Queries.tresholdQuery1(mongoDB, DataType.GAIN, 20000);
+		MongoDB_Queries.rangeQuery(mongoDB, 1314277800000L, 1314282900000L);
+		MongoDB_Queries.tresholdQuery(mongoDB, DataType.GAIN, 20000);
 
 		// drop indices
 		if (useIndices) {
-			MongoDB_Queries.dropIndex(mongoDB, COLLECTION_MEASUREMENT,
-					TIMESTAMP);
-			MongoDB_Queries.dropIndex(mongoDB, COLLECTION_MEASUREMENT,
-					DATATYPE);
-			MongoDB_Queries.dropIndex(mongoDB, COLLECTION_MEASUREMENT, 
-					VALUE);
+			MongoDB_Queries.dropIndex(mongoDB, MongoDB_Config.COLLECTION_MEASURINGS,
+					MongoDB_Config.TIMESTAMP);
+			MongoDB_Queries.dropIndex(mongoDB, MongoDB_Config.COLLECTION_MEASURINGS,
+					MongoDB_Config.DATATYPE);
+			MongoDB_Queries.dropIndex(mongoDB, MongoDB_Config.COLLECTION_MEASURINGS, 
+					MongoDB_Config.VALUE);
 		}
 	}
 
@@ -144,7 +96,7 @@ public class MongoDB_Eval {
 	@SuppressWarnings("unused")
 	private static void importMeasuringPoints(String csvFile, DB mongoDB) {
 		List<BasicDBObject> dbObjectPuffer = new ArrayList<BasicDBObject>(
-				BUFFER_SIZE);
+				MongoDB_Config.BUFFER_SIZE);
 		BufferedReader bf;
 		try {
 			bf = new BufferedReader(new FileReader(csvFile));
@@ -158,12 +110,12 @@ public class MongoDB_Eval {
 			while ((line = bf.readLine()) != null) {
 				n++;
 				dbObjectPuffer.add(createDBObjectFromData(line));
-				if (dbObjectPuffer.size() == BUFFER_SIZE) {
+				if (dbObjectPuffer.size() == MongoDB_Config.BUFFER_SIZE) {
 					// store data and clear buffer
 					writeDataToDB(dbObjectPuffer, mongoDB);
 					dbObjectPuffer.clear();
 //					System.out.print(".");
-					if (n / BUFFER_SIZE % 10 == 0) {
+					if (n / MongoDB_Config.BUFFER_SIZE % 10 == 0) {
 						diff = System.currentTimeMillis() - start;
 //						System.out.printf(" %d documents inserted in %d seconds\n", n, diff);
 						System.out.printf("%d;%d\n", n, diff);
@@ -194,28 +146,28 @@ public class MongoDB_Eval {
 
 		BasicDBObject dbObj = new BasicDBObject();
 		// timestamp
-		dbObj.put(TIMESTAMP, Long.parseLong(documentData[0]));
+		dbObj.put(MongoDB_Config.TIMESTAMP, Long.parseLong(documentData[0]));
 		// value
-		dbObj.put(VALUE, Integer.parseInt(documentData[1]));
+		dbObj.put(MongoDB_Config.VALUE, Integer.parseInt(documentData[1]));
 		// identifier
 		String identifier = documentData[2];
 		if (identifier != null) {
 			String[] identifierData = identifier.split("\\.");
 			// station_ID (Anlagenname)
-			dbObj.put(STATION_ID, identifierData[0]);
+			dbObj.put(MongoDB_Config.STATION_ID, identifierData[0]);
 			// partID (Bauteilart)
-			dbObj.put(PART_ID, identifierData[1]);
+			dbObj.put(MongoDB_Config.PART_ID, identifierData[1]);
 			// serial number (laufende Nummer)
-			dbObj.put(SERIAL_NO, Integer.parseInt(identifierData[2]));
+			dbObj.put(MongoDB_Config.SERIAL_NO, Integer.parseInt(identifierData[2]));
 			// datatype (Datenart)
-			dbObj.put(DATATYPE, identifierData[3]);
+			dbObj.put(MongoDB_Config.DATATYPE, identifierData[3]);
 			// optional data
-			if (identifierData[3].equals(PDC)
-					|| identifierData[3].equals(UDC)) {
+			if (identifierData[3].equals(MongoDB_Config.PDC)
+					|| identifierData[3].equals(MongoDB_Config.UDC)) {
 				// "string"
-				dbObj.put(OPT_STRING, identifierData[4]);
+				dbObj.put(MongoDB_Config.OPT_STRING, identifierData[4]);
 				// serial number 2
-				dbObj.put(SERIAL_NO_2, identifierData[5]);
+				dbObj.put(MongoDB_Config.SERIAL_NO_2, identifierData[5]);
 			}
 		}
 		return dbObj;
@@ -231,7 +183,7 @@ public class MongoDB_Eval {
 	 */
 	private static void writeDataToDB(List<BasicDBObject> documents, DB mongoDB) {
 		DBCollection measurementCollection = mongoDB
-				.getCollectionFromString(COLLECTION_MEASUREMENT);
+				.getCollectionFromString(MongoDB_Config.COLLECTION_MEASURINGS);
 
 		for (DBObject dbObj : documents) {
 			measurementCollection.save(dbObj);

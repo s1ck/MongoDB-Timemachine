@@ -6,6 +6,8 @@ import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
 
+import de.uni.leipzig.bis.mongodb.MongoDB_Config.DataType;
+
 /**
  * A collection of MongoDB Queries on timeseries data.
  * 
@@ -13,27 +15,6 @@ import com.mongodb.DBCollection;
  * 
  */
 public class MongoDB_Queries {
-
-	/**
-	 * Represents the datatypes of the stored values
-	 * 
-	 * @author s1ck
-	 * 
-	 */
-	public static enum DataType {
-		UDC, PDC, PAC, TEMP, GAIN
-	}
-
-	/**
-	 * Defines the number of warmup runs
-	 */
-	public static final int SKIPS = 10;
-
-	/**
-	 * Defines the number of test runs
-	 */
-	public static final int RUNS = 100;
-
 	/**
 	 * Processes a range query between two given timestamps.
 	 * 
@@ -44,11 +25,11 @@ public class MongoDB_Queries {
 	 * @param toTimestamp
 	 *            the upper bound of the range
 	 */
-	public static void rangeQuery1(DB mongoDB, long fromTimestamp,
+	public static void rangeQuery(DB mongoDB, long fromTimestamp,
 			long toTimestamp) {
 		// get collection
 		DBCollection measCollection = mongoDB
-				.getCollection(MongoDB_Eval.COLLECTION_MEASUREMENT);
+				.getCollection(MongoDB_Config.COLLECTION_MEASURINGS);
 
 		System.out.println("Query: Range Query 1");
 		System.out.println("********************");
@@ -77,11 +58,11 @@ public class MongoDB_Queries {
 	 * @param treshold
 	 *            Treshold as integer value
 	 */
-	public static void tresholdQuery1(DB mongoDB, DataType datatype,
+	public static void tresholdQuery(DB mongoDB, DataType datatype,
 			int treshold) {
 		// get collection
 		DBCollection measCollection = mongoDB
-				.getCollection(MongoDB_Eval.COLLECTION_MEASUREMENT);
+				.getCollection(MongoDB_Config.COLLECTION_MEASURINGS);
 
 		System.out.println("Query: Treshold Query 1");
 		System.out.println("********************");
@@ -160,17 +141,17 @@ public class MongoDB_Queries {
 	 * @return
 	 */
 	private static long processQuery(DBCollection coll, BasicDBObject query) {
-		long[] times = new long[RUNS];
+		long[] times = new long[MongoDB_Config.RUNS];
 		long start;
 		long diff;
 
 		// warmup
-		for (int i = 0; i < SKIPS; i++) {
+		for (int i = 0; i < MongoDB_Config.SKIPS; i++) {
 			coll.find(query).count();
 		}
 
 		// testing
-		for (int i = 0; i < RUNS; i++) {
+		for (int i = 0; i < MongoDB_Config.RUNS; i++) {
 			start = System.currentTimeMillis();
 			coll.find(query).count();
 			diff = System.currentTimeMillis() - start;

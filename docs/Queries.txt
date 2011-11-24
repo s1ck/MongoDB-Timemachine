@@ -1,0 +1,121 @@
+0 Index auf "timestamp"?
+
+	db.measurings.ensureIndex({"timestamp" : 1});
+
+1 Wieviele Einträge hat Zeitreihe XY insgesamt/im Zeitintervall [von,bis]?
+
+	db.measurings.find(
+	{ 
+		"datatype" : <type>, 
+		"stationID" : <stationID>, 
+		"serialNo" : 1, 
+		"timestamp" : 
+		{ 
+			$gt : <from>, 
+			$lt : <to> 
+		}
+	}).count();
+
+	db.measurings.find({ "datatype" : "gain", "stationID" : "wendlinghausen2", "serialNo" : 1, "timestamp" : { $gt : 1269953100000, $lt : 1269970200000 }}).count();
+
+2 Wie ist der Wert der Zeitreihe XY zum Zeitpunkt Z?
+
+	db.measurings.find(
+	{ 
+		"datatype" : <type>, 
+		"stationID" : <stationID>, 
+		"serialNo" : 1, 
+		"timestamp" : <Z>
+	},	
+	{ 
+		<projektion> : 1 
+	});
+	
+	db.measurings.find({ "datatype" : "gain", "stationID" : "wendlinghausen2", "serialNo" : 1, "timestamp" : 1269953100000 }, { "value" : 1 } );
+
+3 Wie sind die Werte der Zeitreihe XY im Zeitintervall [von,bis]? 
+
+	db.measurings.find(
+	{ 
+		"datatype" : <type>, 
+		"stationID" : <stationID>, 
+		"serialNo" : 1,
+		"timestamp" : 
+		{ 
+			$gt : <from>, 
+			$lt : <to> 
+		}
+	}, 
+	{ 
+		<projektion> : 1 
+	});
+	
+	db.measurings.find({ "datatype" : "gain", "stationID" : "wendlinghausen2", "serialNo" : 1, "timestamp" : { $gt : 1269953100000, $lt : 1269970200000 }}, { "value" : 1 } );
+
+4 Wie ist der Zeitpunkt des ältesten/neuesten Eintrags in Zeitreihe XY?
+
+	db.measurings.find(
+	{ 
+		"datatype" : <type>, 
+		"stationID" : <stationID>, 
+		"serialNo" : <serialNo>
+	}, 
+	{
+		<projektion> : 1
+	}).sort(
+	{
+		<sort_attr> : [1|-1] // should be indexed
+	}).limit(1);
+	
+	db.measurings.find({ "datatype" : "gain", "stationID" : "wendlinghausen2", "serialNo" : 1}, {"timestamp" : 1}).sort({"timestamp" : -1}).limit(1); // max
+	
+5 Wie ist der maximale/minimale/durchschnittliche Wert der Zeitreihe XY im Zeitintervall [von,bis]?
+
+	db.measurings.find({ "datatype" : "gain", "stationID" : "wendlinghausen2", "serialNo" : 1 }, { "value" : 1 }).sort({"value" : 1}).limit(1) // min value (0)
+	db.measurings.find({ "datatype" : "gain", "stationID" : "wendlinghausen2", "serialNo" : 1 }, { "value" : 1 }).sort({"value" : -1}).limit(1) // max value (125380)
+
+M/R Beispiel
+- wichtig hierbei, MAP ausgabeformat (value) == REDUCE ausgabeformat (value) für die korrekte Aggregation
+
+db.runCommand(
+{ 	
+	mapreduce 	: "measurings",
+	map 		: function() {					
+					emit(this.stationID, {total:this.value, count:1, avg:0, min:this.value, max:this.value}); 
+				},
+	reduce 		: function(key, values) {
+					var r = {total:0, count:0, avg:0, min:0, max:0};
+					if(values.length > 0) {
+						r.min = values[0].min;
+						r.max = values[0].max;
+					}
+					values.forEach(function(v) {
+						r.total += v.total;
+						r.count += v.count;
+						
+						if(v.min < r.min) {
+							r.min = v.min;
+						}
+						if(v.max > r.max) {
+							r.max = v.max;
+						}
+					});
+					
+					return r;					
+				},
+	out 		: { inline : 1 }, 
+	query 		: { "datatype" : "gain", "stationID" : "wendlinghausen2", "serialNo" : 1 },
+	finalize	: function(k, r) {
+					if(r.count > 0)
+						r.avg = r.total / r.count;
+					return r;
+				}
+});
+
+6 Wie ist der Verlauf des Wirkungsgrades für den Wechselrichter XY im Zeitintervall [von,bis]? (Wirkungsgrad:=PAC/(Summe PDC aller Strings))
+7 An welchen Tagen hat Zeitreihe XY den Schwellenwert Z über-/unterschritten? (Beispiel: Wann war der Tagesertrag unter 100?)
+8 Wie groß ist die erzeugte Leistung von Wechselrichter X durchschnittlich pro Temperaturstufe? (d.h. Durchschnitt von PAC je Wert der Temperaturzeitreihe)
+9 Für welche Tage im Zeitintervall [von, bis] liegen KEINE Werte für Zeitreihe XY vor?
+
+
+
