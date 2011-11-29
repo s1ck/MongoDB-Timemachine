@@ -104,7 +104,7 @@ db.runCommand(
 					return r;					
 				},
 	out 		: { inline : 1 }, 
-	query 		: { "datatype" : "gain", "stationID" : "wendlinghausen2", "serialNo" : 1 },
+	query 		: { "datatype" : "gain", "stationID" : "wendlinghausen2", "serialNo" : 1, "timestamp" : { $gt : 1269953100000, $lt : 1269970200000 } },
 	finalize	: function(k, r) {
 					if(r.count > 0)
 						r.avg = r.total / r.count;
@@ -113,8 +113,80 @@ db.runCommand(
 });
 
 6 Wie ist der Verlauf des Wirkungsgrades für den Wechselrichter XY im Zeitintervall [von,bis]? (Wirkungsgrad:=PAC/(Summe PDC aller Strings))
+
+db.runCommand(
+{ 	
+	mapreduce 	: "measurings",
+	map 		: function() {	
+					var r = {total_pac:0, total_pdc:0, efficiency:0};
+									
+					if(this.datatype == "pac") {
+						r.total_pac = this.value;
+					} else {
+						r.total_pdc = this.value;
+					}
+					emit(this.stationID, r); 
+				},
+	reduce 		: function(key, values) {
+					var r = { total_pac:0, total_pdc:0, efficiency:0 };
+					
+					values.forEach(function(v) {
+						r.total_pac += v.total_pac;
+						r.total_pdc += v.total_pdc;												
+					});
+					
+					return r;					
+				},
+	out 		: { inline : 1 }, 
+	query 		: { $or : [ { "datatype" : "pac" }, { "datatype" : "pdc" } ], "stationID" : "wendlinghausen2", "serialNo" : 1, "timestamp" : { $gt : 1269953100000, $lt : 1269970200000 } },
+	finalize	: function(k, r) {
+					if(r.total_pdc > 0)
+						r.efficiency = r.total_pac / r.total_pdc;
+					return r;
+				}
+});
+
 7 An welchen Tagen hat Zeitreihe XY den Schwellenwert Z über-/unterschritten? (Beispiel: Wann war der Tagesertrag unter 100?)
+
+// run map reduce to aggregate the data
+
+db.runCommand(
+{ 	
+	mapreduce 	: "measurings",
+	map 		: function() {
+					var r = {date:'', count:1, total:this.value, avg:0, timestamp:this.timestamp}
+					// group documents by day
+					var day = Math.floor(this.timestamp / 1000 / 60 /60 / 24);									
+					emit(day, r);
+				},
+	reduce 		: function(key, values) {
+					var r = {date:'', count:0, total:0, avg:0, timestamp:0}
+					
+					values.forEach(function(v) {
+						r.total += v.total;
+						r.count += v.count;
+						r.timestamp = v.timestamp; 
+					});
+					return r;					
+				},
+	out 		: { replace : "temp" }, 
+	query 		: { "datatype" : "gain" , "stationID" : "wendlinghausen2", "serialNo" : 1 },
+	finalize	: function(k, r) {					
+					var date = new Date(r.timestamp);
+					r.date = date.getDate() + "." + (date.getMonth() + 1) + "." + date.getFullYear();
+					if(r.count > 0) {
+						r.avg = r.total / r.count;
+					}
+					return r;					
+				}	
+});
+
+// query the aggregated data
+
+db.temp.find({"value.total" : { $lt : 100 } }, { "value.date" : 1 });
+
 8 Wie groß ist die erzeugte Leistung von Wechselrichter X durchschnittlich pro Temperaturstufe? (d.h. Durchschnitt von PAC je Wert der Temperaturzeitreihe)
+
 9 Für welche Tage im Zeitintervall [von, bis] liegen KEINE Werte für Zeitreihe XY vor?
 
 
