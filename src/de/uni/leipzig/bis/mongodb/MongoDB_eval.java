@@ -44,7 +44,7 @@ public class MongoDB_Eval {
 		}
 
 		importMeasuringPoints(MongoDB_Config.PATH_6M, db);
-//		testMeasurementData(db, true);
+		testMeasurementData(db, true, false);
 
 		// close connection
 		m.close();
@@ -55,33 +55,43 @@ public class MongoDB_Eval {
 	 * 
 	 * @param mongoDB
 	 *            the mongoDB instance to perform queries on
-	 * @param useIndices
+	 * @param createIndices
 	 *            true if indices shall be used for the queries (takes time to
 	 *            create / drop)
 	 */
-	private static void testMeasurementData(DB mongoDB, boolean useIndices) {
+	private static void testMeasurementData(DB mongoDB, boolean createIndices,
+			boolean dropIndices) {
 		// create indices
-		if (useIndices) {
-			MongoDB_Queries.createIndex(mongoDB, MongoDB_Config.COLLECTION_MEASURINGS,
+		if (createIndices) {
+			MongoDB_Queries.createIndex(mongoDB,
+					MongoDB_Config.COLLECTION_MEASURINGS,
 					MongoDB_Config.TIMESTAMP);
-			MongoDB_Queries.createIndex(mongoDB, MongoDB_Config.COLLECTION_MEASURINGS,
+			MongoDB_Queries.createIndex(mongoDB,
+					MongoDB_Config.COLLECTION_MEASURINGS,
 					MongoDB_Config.DATATYPE);
-			MongoDB_Queries.createIndex(mongoDB, MongoDB_Config.COLLECTION_MEASURINGS,
-					MongoDB_Config.VALUE);
+			MongoDB_Queries.createIndex(mongoDB,
+					MongoDB_Config.COLLECTION_MEASURINGS, MongoDB_Config.VALUE);
 		}
 
-		// do some queries
-		MongoDB_Queries.rangeQuery(mongoDB, 1314277800000L, 1314282900000L);
-		MongoDB_Queries.tresholdQuery(mongoDB, DataType.GAIN, 20000);
+		// query 1 (range)
+		MongoDB_Queries.query1(mongoDB, DataType.GAIN, "wendlinghausen2", 1,
+				1269953100000L, 1269970200000L);
+		// query 2 (exact match)
+		MongoDB_Queries.query2(mongoDB, DataType.GAIN, "wendlinghausen2", 1,
+				1269953100000L);
+
+		// MongoDB_Queries.tresholdQuery(mongoDB, DataType.GAIN, 20000);
 
 		// drop indices
-		if (useIndices) {
-			MongoDB_Queries.dropIndex(mongoDB, MongoDB_Config.COLLECTION_MEASURINGS,
+		if (dropIndices) {
+			MongoDB_Queries.dropIndex(mongoDB,
+					MongoDB_Config.COLLECTION_MEASURINGS,
 					MongoDB_Config.TIMESTAMP);
-			MongoDB_Queries.dropIndex(mongoDB, MongoDB_Config.COLLECTION_MEASURINGS,
+			MongoDB_Queries.dropIndex(mongoDB,
+					MongoDB_Config.COLLECTION_MEASURINGS,
 					MongoDB_Config.DATATYPE);
-			MongoDB_Queries.dropIndex(mongoDB, MongoDB_Config.COLLECTION_MEASURINGS, 
-					MongoDB_Config.VALUE);
+			MongoDB_Queries.dropIndex(mongoDB,
+					MongoDB_Config.COLLECTION_MEASURINGS, MongoDB_Config.VALUE);
 		}
 	}
 
@@ -114,10 +124,11 @@ public class MongoDB_Eval {
 					// store data and clear buffer
 					writeDataToDB(dbObjectPuffer, mongoDB);
 					dbObjectPuffer.clear();
-//					System.out.print(".");
+					// System.out.print(".");
 					if (n / MongoDB_Config.BUFFER_SIZE % 10 == 0) {
 						diff = System.currentTimeMillis() - start;
-//						System.out.printf(" %d documents inserted in %d seconds\n", n, diff);
+						// System.out.printf(" %d documents inserted in %d seconds\n",
+						// n, diff);
 						System.out.printf("%d;%d\n", n, diff);
 					}
 				}
@@ -158,7 +169,8 @@ public class MongoDB_Eval {
 			// partID (Bauteilart)
 			dbObj.put(MongoDB_Config.PART_ID, identifierData[1]);
 			// serial number (laufende Nummer)
-			dbObj.put(MongoDB_Config.SERIAL_NO, Integer.parseInt(identifierData[2]));
+			dbObj.put(MongoDB_Config.SERIAL_NO,
+					Integer.parseInt(identifierData[2]));
 			// datatype (Datenart)
 			dbObj.put(MongoDB_Config.DATATYPE, identifierData[3]);
 			// optional data

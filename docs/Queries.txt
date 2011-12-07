@@ -2,7 +2,7 @@
 
 	db.measurings.ensureIndex({"timestamp" : 1});
 
-1 Wieviele Einträge hat Zeitreihe XY insgesamt/im Zeitintervall [von,bis]?
+1 Wieviele EintrÃ¤ge hat Zeitreihe XY insgesamt/im Zeitintervall [von,bis]?
 
 	db.measurings.find(
 	{ 
@@ -17,6 +17,8 @@
 	}).count();
 
 	db.measurings.find({ "datatype" : "gain", "stationID" : "wendlinghausen2", "serialNo" : 1, "timestamp" : { $gt : 1269953100000, $lt : 1269970200000 }}).count();
+	
+	--> 14
 
 2 Wie ist der Wert der Zeitreihe XY zum Zeitpunkt Z?
 
@@ -32,6 +34,8 @@
 	});
 	
 	db.measurings.find({ "datatype" : "gain", "stationID" : "wendlinghausen2", "serialNo" : 1, "timestamp" : 1269953100000 }, { "value" : 1 } );
+	
+	--> { "_id" : ObjectId("4edcc195a720479fb491fa9b"), "value" : 43550 }
 
 3 Wie sind die Werte der Zeitreihe XY im Zeitintervall [von,bis]? 
 
@@ -52,7 +56,7 @@
 	
 	db.measurings.find({ "datatype" : "gain", "stationID" : "wendlinghausen2", "serialNo" : 1, "timestamp" : { $gt : 1269953100000, $lt : 1269970200000 }}, { "value" : 1 } );
 
-4 Wie ist der Zeitpunkt des ältesten/neuesten Eintrags in Zeitreihe XY?
+4 Wie ist der Zeitpunkt des Ã¤ltesten/neuesten Eintrags in Zeitreihe XY?
 
 	db.measurings.find(
 	{ 
@@ -75,7 +79,7 @@
 	db.measurings.find({ "datatype" : "gain", "stationID" : "wendlinghausen2", "serialNo" : 1 }, { "value" : 1 }).sort({"value" : -1}).limit(1) // max value (125380)
 
 M/R Beispiel
-- wichtig hierbei, MAP ausgabeformat (value) == REDUCE ausgabeformat (value) für die korrekte Aggregation
+- wichtig hierbei, MAP ausgabeformat (value) == REDUCE ausgabeformat (value) fï¿½r die korrekte Aggregation
 
 db.runCommand(
 { 	
@@ -112,7 +116,7 @@ db.runCommand(
 				}
 });
 
-6 Wie ist der Verlauf des Wirkungsgrades für den Wechselrichter XY im Zeitintervall [von,bis]? (Wirkungsgrad:=PAC/(Summe PDC aller Strings))
+6 Wie ist der Verlauf des Wirkungsgrades fÃ¼r den Wechselrichter XY im Zeitintervall [von,bis]? (Wirkungsgrad:=PAC/(Summe PDC aller Strings))
 
 db.runCommand(
 { 	
@@ -146,7 +150,7 @@ db.runCommand(
 				}
 });
 
-7 An welchen Tagen hat Zeitreihe XY den Schwellenwert Z über-/unterschritten? (Beispiel: Wann war der Tagesertrag unter 100?)
+7 An welchen Tagen hat Zeitreihe XY den Schwellenwert Z Ã¼ber-/unterschritten? (Beispiel: Wann war der Tagesertrag unter 100?)
 
 // run map reduce to aggregate the data
 
@@ -156,7 +160,7 @@ db.runCommand(
 	map 		: function() {
 					var r = {date:'', count:1, total:this.value, avg:0, timestamp:this.timestamp}
 					// group documents by day
-					var day = Math.floor(this.timestamp / 1000 / 60 /60 / 24);									
+					var day = Math.floor(this.timestamp / 1000 / 60 / 60 / 24);									
 					emit(day, r);
 				},
 	reduce 		: function(key, values) {
@@ -185,9 +189,9 @@ db.runCommand(
 
 db.temp.find({"value.total" : { $lt : 100 } }, { "value.date" : 1 });
 
-8 Wie groß ist die erzeugte Leistung von Wechselrichter X durchschnittlich pro Temperaturstufe? (d.h. Durchschnitt von PAC je Wert der Temperaturzeitreihe)
+8 Wie groÃŸ ist die erzeugte Leistung von Wechselrichter X durchschnittlich pro Temperaturstufe? (d.h. Durchschnitt von PAC je Wert der Temperaturzeitreihe)
 
-9 Für welche Tage im Zeitintervall [von, bis] liegen KEINE Werte für Zeitreihe XY vor?
+9 FÃ¼r welche Tage im Zeitintervall [von, bis] liegen KEINE Werte fÃ¼r Zeitreihe XY vor?
 
 
 

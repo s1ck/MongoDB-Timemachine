@@ -5,7 +5,7 @@ public class MongoDB_Config {
 	 * Database specific settings
 	 */
 	public static final String HOST = "localhost";
-	public static final Integer PORT = 27017;
+	public static final Integer PORT = 27020;
 	public static final String DB = "BIS_mongo_eval";
 	public static final String COLLECTION_MEASURINGS = "measurings";
 	public static final String COLLECTION_STATIONS = "stations";
@@ -53,16 +53,36 @@ public class MongoDB_Config {
 	/*
 	 * Defines the number of warmup runs
 	 */
-	public static final int SKIPS = 10;
+	public static final int SKIPS = 0;
 	/*
 	 * Defines the number of test runs
 	 */
-	public static final int RUNS = 100;
+	public static final int RUNS = 1;
 	
 	/**
 	 * Represents the datatypes of the stored values
 	 */
 	public static enum DataType {
-		UDC, PDC, PAC, TEMP, GAIN
+		UDC {
+			public String toString() {
+				return "udc";
+			}
+		}, PDC {
+			public String toString() {
+				return "pdc";
+			}
+		}, PAC {
+			public String toString() {
+				return "pac";
+			}
+		}, TEMP {
+			public String toString() {
+				return "temp";
+			}
+		}, GAIN {
+			public String toString() {
+				return "gain";
+			}
+		}				
 	}
 }
