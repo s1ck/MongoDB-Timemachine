@@ -1,0 +1,15 @@
+- sort internals evaluieren (insbesondere bei min / max Abfragen)
+- Query 6 PAC / PDC für jeden Timestamp (Verlauf)
+- Query 7 "Date" aus map / reduce rausnehmen
+- Query 8 und 9 formulieren
+- MapReduce Chunk internals (Konfiguration)
+- Sharding internals
+- ca 1 Milliarde Messwerte -> duplizieren der 30M Datei
+- Benchmarking Queries
+	- single machine / single instance
+	- single machine / multiple instance
+	- multiple machines / multiple instances
+- 1-2 Seiten Ausarbeitung GraphDB vs Documentstore
+- Abschlusspräsentation vorbereiten
+
+
