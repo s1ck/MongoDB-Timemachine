@@ -1,7 +1,8 @@
 - sort internals evaluieren (insbesondere bei min / max Abfragen)
-- Query 6 PAC / PDC für jeden Timestamp (Verlauf)
-- Query 7 "Date" aus map / reduce rausnehmen
-- Query 8 und 9 formulieren
+- Query 6 PAC / PDC für jeden Timestamp (Verlauf) - done
+- Query 7 "Date" aus map / reduce rausnehmen - done
+- Query 8 formulieren - done
+- Query 9 formulieren
 - MapReduce Chunk internals (Konfiguration)
 - Sharding internals
 - ca 1 Milliarde Messwerte -> duplizieren der 30M Datei

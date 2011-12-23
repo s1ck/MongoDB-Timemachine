@@ -122,49 +122,46 @@ db.runCommand(
 { 	
 	mapreduce 	: "measurings",
 	map 		: function() {	
-					var r = {total_pac:0, total_pdc:0, efficiency:0};
+					var r = {pac:0, total_pdc:0};
 									
 					if(this.datatype == "pac") {
-						r.total_pac = this.value;
+						r.pac = this.value;
 					} else {
 						r.total_pdc = this.value;
 					}
-					emit(this.stationID, r); 
+					emit(this.timestamp, r);
 				},
 	reduce 		: function(key, values) {
-					var r = { total_pac:0, total_pdc:0, efficiency:0 };
+					var r = {pac : 0, total_pdc:0};
 					
 					values.forEach(function(v) {
-						r.total_pac += v.total_pac;
+						r.pac += v.pac;
 						r.total_pdc += v.total_pdc;												
 					});
 					
 					return r;					
 				},
 	out 		: { inline : 1 }, 
-	query 		: { $or : [ { "datatype" : "pac" }, { "datatype" : "pdc" } ], "stationID" : "wendlinghausen2", "serialNo" : 1, "timestamp" : { $gt : 1269953100000, $lt : 1269970200000 } },
+	query 		: { $or : [ { "datatype" : "pac" }, { "datatype" : "pdc" } ], "stationID" : "wendlinghausen2", "serialNo" : 1, "timestamp" : { $gte : 1269968400000, $lte : 1269969300000 } },
 	finalize	: function(k, r) {
-					if(r.total_pdc > 0)
-						r.efficiency = r.total_pac / r.total_pdc;
-					return r;
+					if(r.pac > 0)
+						return {timestamp : k, wirkungsgrad : r.pac / r.total_pdc };
 				}
 });
 
 7 An welchen Tagen hat Zeitreihe XY den Schwellenwert Z über-/unterschritten? (Beispiel: Wann war der Tagesertrag unter 100?)
 
-// run map reduce to aggregate the data
-
 db.runCommand(
 { 	
 	mapreduce 	: "measurings",
 	map 		: function() {
-					var r = {date:'', count:1, total:this.value, avg:0, timestamp:this.timestamp}
+					var r = {count:1, total:this.value, avg:0, timestamp:this.timestamp}
 					// group documents by day
 					var day = Math.floor(this.timestamp / 1000 / 60 / 60 / 24);									
 					emit(day, r);
 				},
 	reduce 		: function(key, values) {
-					var r = {date:'', count:0, total:0, avg:0, timestamp:0}
+					var r = {count:0, total:0, avg:0, timestamp:0}
 					
 					values.forEach(function(v) {
 						r.total += v.total;
@@ -177,21 +174,74 @@ db.runCommand(
 	query 		: { "datatype" : "gain" , "stationID" : "wendlinghausen2", "serialNo" : 1 },
 	finalize	: function(k, r) {					
 					var date = new Date(r.timestamp);
-					r.date = date.getDate() + "." + (date.getMonth() + 1) + "." + date.getFullYear();
+					var dateString = date.getDate() + "." + (date.getMonth() + 1) + "." + date.getFullYear();
 					if(r.count > 0) {
 						r.avg = r.total / r.count;
 					}
-					return r;					
+					return {date : dateString, res : r};					
 				}	
 });
 
-// query the aggregated data
+// Abfrage der aggregierten Daten in Ergebnis Collection "temp"
 
 db.temp.find({"value.total" : { $lt : 100 } }, { "value.date" : 1 });
 
 8 Wie groß ist die erzeugte Leistung von Wechselrichter X durchschnittlich pro Temperaturstufe? (d.h. Durchschnitt von PAC je Wert der Temperaturzeitreihe)
 
+// Phase 1: Gruppieren von PAC und TEMP nach Zeitstempel
+
+db.runCommand(
+{ 	
+	mapreduce 	: "measurings",
+	map 		: function() {
+					var r = { temp : 0, pac : 0 };
+					if(this.datatype == 'temp')
+						r.temp = this.value;
+					else
+						r.pac = this.value;
+						
+					emit(this.timestamp, r);
+				},
+	reduce 		: function(key, values) {
+					var r = { temp : 0, pac : 0 };
+					values.forEach(function(v) {
+						if(v.temp > 0)
+							r.temp = v.temp;
+						else
+							r.pac = v.pac;
+					});
+					return r;					
+				},
+	out 		: { replace : "ts_grouped" }, 
+	query 		: { $or : [ { "datatype" : "pac" }, { "datatype" : "temp" } ], "stationID" : "wendlinghausen2", "serialNo" : 1},	
+});
+
+// Phase 2: Gruppieren nach Temperatur und berechnen des AVG(PAC)
+
+db.runCommand(
+{ 	
+	mapreduce 	: "ts_grouped",
+	map 		: function() {
+					var r = { count : 1, total_pac : this.value.pac };
+					emit(this.value.temp, r);					
+				},
+	reduce 		: function(key, values) {
+					var r = { count : 0, total_pac : 0 };
+					values.forEach(function(v) {
+						r.count += v.count;
+						r.total_pac += v.total_pac;
+					});
+					return r;
+				},
+	out 		: { inline : 1 },
+	finalize	: function(key, value) {
+					if(value.count > 0)
+						return{temp : key, avg_pac : value.total_pac / value.count };
+				}
+});
+
 9 Für welche Tage im Zeitintervall [von, bis] liegen KEINE Werte für Zeitreihe XY vor?
+
 
 
 
