@@ -43,7 +43,9 @@ public class MongoDB_Eval {
 			db.createCollection("stations", null);
 		}
 
-		importMeasuringPoints(MongoDB_Config.PATH_6M, db);
+		String dataPath = (args.length > 0) ? args[0] : MongoDB_Config.PATH_6M;
+				
+		importMeasuringPoints(dataPath, db);
 		testMeasurementData(db, true, false);
 
 		// close connection
