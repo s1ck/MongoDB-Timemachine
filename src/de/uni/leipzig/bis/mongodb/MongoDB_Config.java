@@ -22,23 +22,23 @@ public class MongoDB_Config {
 	public static final String DATATYPE = "datatype";
 	public static final String OPT_STRING = "opt_string";
 	public static final String SERIAL_NO_2 = "serialNo2";
-	
-//	public static final String TIMESTAMP = "a";
-//	public static final String VALUE = "b";
-//	public static final String STATION_ID = "c";
-//	public static final String PART_ID = "d";
-//	public static final String SERIAL_NO = "e";
-//	public static final String DATATYPE = "f";
-//	public static final String OPT_STRING = "g";
-//	public static final String SERIAL_NO_2 = "h";
-			
+
+	// public static final String TIMESTAMP = "a";
+	// public static final String VALUE = "b";
+	// public static final String STATION_ID = "c";
+	// public static final String PART_ID = "d";
+	// public static final String SERIAL_NO = "e";
+	// public static final String DATATYPE = "f";
+	// public static final String OPT_STRING = "g";
+	// public static final String SERIAL_NO_2 = "h";
+
 	/**
 	 * Datatypes
 	 */
 	public static final String PDC = "pdc";
 	public static final String UDC = "udc";
 	public static final String GAIN = "gain";
-		
+
 	/**
 	 * Data paths
 	 */
@@ -49,7 +49,7 @@ public class MongoDB_Config {
 	/**
 	 * Eval specific
 	 */
-	
+
 	/**
 	 * Defines the number of warmup runs
 	 */
@@ -57,9 +57,43 @@ public class MongoDB_Config {
 	/**
 	 * Defines the number of test runs
 	 */
-	public static final int RUNS = 10;	
+	public static final int RUNS = 10;
 	/**
 	 * Range size for the queries
 	 */
 	public static final int DAYS = 2;
+
+	/**
+	 * DataTypes used in the time series data
+	 * 
+	 * @author s1ck
+	 *
+	 */
+	public static enum DataType {
+		UDC {
+			public String toString() {
+				return "udc";
+			}
+		},
+		PDC {
+			public String toString() {
+				return "pdc";
+			}
+		},
+		PAC {
+			public String toString() {
+				return "pac";
+			}
+		},
+		TEMP {
+			public String toString() {
+				return "temp";
+			}
+		},
+		GAIN {
+			public String toString() {
+				return "gain";
+			}
+		}
+	}
 }

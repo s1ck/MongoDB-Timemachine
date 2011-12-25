@@ -3,6 +3,9 @@ package de.uni.leipzig.bis.mongodb;
 import java.util.List;
 import java.util.Random;
 
+import javax.xml.crypto.Data;
+
+import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
@@ -11,6 +14,7 @@ import com.mongodb.MapReduceCommand;
 import com.mongodb.MapReduceOutput;
 import com.mongodb.MapReduceCommand.OutputType;
 
+import de.uni.leipzig.bis.mongodb.MongoDB_Config.DataType;
 import de.uni.leipzig.bis.mongodb.MongoDB_Eval.StationInfo;
 
 /**
@@ -175,7 +179,8 @@ public class MongoDB_Queries {
 	public static void query3(DB mongoDB, List<StationInfo> availableStations,
 			List<String> availableDataTypes, Long lowerTimeBound,
 			Long upperTimeBound) {
-		// get collection
+		// get random time series
+
 		DBCollection measCollection = mongoDB
 				.getCollection(MongoDB_Config.COLLECTION_MEASURINGS);
 
@@ -187,7 +192,8 @@ public class MongoDB_Queries {
 		Long lowerBound = getRandomInRange(lowerTimeBound, upperTimeBound, true);
 		Long upperBound = getUpperBound(lowerBound, MongoDB_Config.DAYS);
 
-		// range query
+		// build query
+
 		BasicDBObject rangeQuery = new BasicDBObject();
 		// identifier
 		rangeQuery.put(MongoDB_Config.DATATYPE, dataType);
@@ -221,7 +227,8 @@ public class MongoDB_Queries {
 	public static void query4(DB mongoDB, List<StationInfo> availableStations,
 			List<String> availableDataTypes, Long lowerTimeBound,
 			Long upperTimeBound) {
-		// get collection
+		// get random time series
+
 		DBCollection measCollection = mongoDB
 				.getCollection(MongoDB_Config.COLLECTION_MEASURINGS);
 
@@ -231,6 +238,8 @@ public class MongoDB_Queries {
 				.nextInt(availableStations.size()));
 		int serialNo = r.nextInt(stationInfo.getWrCount());
 
+		// build Query
+
 		BasicDBObject query = new BasicDBObject();
 		query.put(MongoDB_Config.DATATYPE, dataType);
 		query.put(MongoDB_Config.STATION_ID, stationInfo.getName());
@@ -239,6 +248,8 @@ public class MongoDB_Queries {
 		// projection
 		BasicDBObject projection = new BasicDBObject();
 		projection.put(MongoDB_Config.TIMESTAMP, 1);
+
+		// run
 
 		long start = System.currentTimeMillis();
 		long result = (Long) measCollection.find(query, projection)
@@ -263,7 +274,8 @@ public class MongoDB_Queries {
 	public static void query5(DB mongoDB, List<StationInfo> availableStations,
 			List<String> availableDataTypes, Long lowerTimeBound,
 			Long upperTimeBound) {
-		// get collection
+		// get random time series
+
 		DBCollection measCollection = mongoDB
 				.getCollection(MongoDB_Config.COLLECTION_MEASURINGS);
 
@@ -274,6 +286,8 @@ public class MongoDB_Queries {
 		int serialNo = r.nextInt(stationInfo.getWrCount());
 		Long lowerBound = getRandomInRange(lowerTimeBound, upperTimeBound, true);
 		Long upperBound = getUpperBound(lowerBound, MongoDB_Config.DAYS);
+
+		// configure Map Reduce
 
 		String map = "function() { emit(this.stationID, {total:this.value, count:1, avg:0, min:this.value, max:this.value});}";
 
@@ -298,6 +312,66 @@ public class MongoDB_Queries {
 		MapReduceCommand mrCommand = new MapReduceCommand(measCollection, map,
 				reduce, null, OutputType.INLINE, query);
 		mrCommand.setFinalize(finalize);
+
+		// run
+
+		long start = System.currentTimeMillis();
+		measCollection.mapReduce(mrCommand);
+		long diff = System.currentTimeMillis() - start;
+
+		System.out.println(String.format("%s;%d;%d;%d;%d",
+				stationInfo.getName(), serialNo, lowerBound, upperBound, diff));
+	}
+
+	/**
+	 * 6 Wie ist der Verlauf des Wirkungsgrades für den Wechselrichter XY im
+	 * Zeitintervall [von,bis]? (Wirkungsgrad:=PAC/(Summe PDC aller Strings))
+	 * 
+	 * @param mongoDB
+	 * @param availableStations
+	 * @param availableDataTypes
+	 * @param lowerTimeBound
+	 * @param upperTimeBound
+	 */
+	public static void query6(DB mongoDB, List<StationInfo> availableStations,
+			List<String> availableDataTypes, Long lowerTimeBound,
+			Long upperTimeBound) {
+		// get random time series
+
+		DBCollection measCollection = mongoDB
+				.getCollection(MongoDB_Config.COLLECTION_MEASURINGS);
+
+		StationInfo stationInfo = availableStations.get(r
+				.nextInt(availableStations.size()));
+		int serialNo = r.nextInt(stationInfo.getWrCount());
+		Long lowerBound = getRandomInRange(lowerTimeBound, upperTimeBound, true);
+		Long upperBound = getUpperBound(lowerBound, MongoDB_Config.DAYS);
+
+		// configure Map Reduce
+
+		String map = "function() { var r = {pac:0, total_pdc:0}; if(this.datatype == 'pac') { r.pac = this.value; } else { r.total_pdc = this.value;} emit(this.timestamp, r);}";
+
+		String reduce = "function(key, values) { var r = {pac : 0, total_pdc:0}; values.forEach(function(v) { r.pac += v.pac; r.total_pdc += v.total_pdc;}); return r;}";
+
+		String finalize = "function(k, r) { if(r.total_pdc > 0) { return {timestamp : k, wirkungsgrad : r.pac / r.total_pdc }; } else { return {timestamp : k, wirkungsgrad : 0 };}}";
+
+		DBObject query = new BasicDBObject();
+		// PDC or PAC
+		BasicDBList list = new BasicDBList();
+		list.add(DataType.PDC.toString());
+		list.add(DataType.PAC.toString());
+		
+		query.put(MongoDB_Config.DATATYPE, new BasicDBObject("$in", list));
+		query.put(MongoDB_Config.STATION_ID, stationInfo.getName());
+		query.put(MongoDB_Config.SERIAL_NO, serialNo);
+		query.put(MongoDB_Config.TIMESTAMP,
+				new BasicDBObject("$gt", lowerBound).append("$lt", upperBound));
+
+		MapReduceCommand mrCommand = new MapReduceCommand(measCollection, map,
+				reduce, null, OutputType.INLINE, query);
+		mrCommand.setFinalize(finalize);
+
+		// run
 
 		long start = System.currentTimeMillis();
 		measCollection.mapReduce(mrCommand);		

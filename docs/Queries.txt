@@ -125,11 +125,11 @@ db.runCommand(
 					var r = {pac:0, total_pdc:0};
 									
 					if(this.datatype == "pac") {
-						r.pac = this.value;
+						r.pac = this.value;						
 					} else {
-						r.total_pdc = this.value;
+						r.total_pdc = this.value;						
 					}
-					emit(this.timestamp, r);
+					emit(this.timestamp, r);					
 				},
 	reduce 		: function(key, values) {
 					var r = {pac : 0, total_pdc:0};
@@ -142,10 +142,13 @@ db.runCommand(
 					return r;					
 				},
 	out 		: { inline : 1 }, 
-	query 		: { $or : [ { "datatype" : "pac" }, { "datatype" : "pdc" } ], "stationID" : "wendlinghausen2", "serialNo" : 1, "timestamp" : { $gte : 1269968400000, $lte : 1269969300000 } },
+	query 		: { "datatype" : { "$in" : [ "pdc" , "pac"]} , "stationID" : "1555" , "serialNo" : 1 , "timestamp" : { "$gt" : 1295743851828 , "$lt" : 1295916651828}},
 	finalize	: function(k, r) {
-					if(r.pac > 0)
+					if(r.total_pdc > 0) {
 						return {timestamp : k, wirkungsgrad : r.pac / r.total_pdc };
+					} else {
+						return {timestamp : k, wirkungsgrad : 0 };
+					}
 				}
 });
 
