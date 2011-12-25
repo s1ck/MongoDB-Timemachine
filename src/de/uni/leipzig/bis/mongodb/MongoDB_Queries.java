@@ -3,16 +3,15 @@ package de.uni.leipzig.bis.mongodb;
 import java.util.List;
 import java.util.Random;
 
-import javax.xml.crypto.Data;
-
 import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
+import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.MapReduceCommand;
-import com.mongodb.MapReduceOutput;
 import com.mongodb.MapReduceCommand.OutputType;
+import com.mongodb.MapReduceOutput;
 
 import de.uni.leipzig.bis.mongodb.MongoDB_Config.DataType;
 import de.uni.leipzig.bis.mongodb.MongoDB_Eval.StationInfo;
@@ -360,7 +359,7 @@ public class MongoDB_Queries {
 		BasicDBList list = new BasicDBList();
 		list.add(DataType.PDC.toString());
 		list.add(DataType.PAC.toString());
-		
+
 		query.put(MongoDB_Config.DATATYPE, new BasicDBObject("$in", list));
 		query.put(MongoDB_Config.STATION_ID, stationInfo.getName());
 		query.put(MongoDB_Config.SERIAL_NO, serialNo);
@@ -374,11 +373,78 @@ public class MongoDB_Queries {
 		// run
 
 		long start = System.currentTimeMillis();
-		measCollection.mapReduce(mrCommand);		
+		measCollection.mapReduce(mrCommand);
 		long diff = System.currentTimeMillis() - start;
 
 		System.out.println(String.format("%s;%d;%d;%d;%d",
 				stationInfo.getName(), serialNo, lowerBound, upperBound, diff));
+	}
+
+	/**
+	 * 7 An welchen Tagen hat Zeitreihe XY den Schwellenwert Z
+	 * über-/unterschritten? (Beispiel: Wann war der Tagesertrag unter 100?)
+	 * 
+	 * This is a combination of map reduce and a following JSON Query. The map
+	 * reduce resulting table is dropped after the benchmark completed.
+	 * 
+	 * @param mongoDB
+	 * @param availableStations
+	 * @param availableDataTypes
+	 * @param lowerTimeBound
+	 * @param upperTimeBound
+	 */
+	public static void query7(DB mongoDB, List<StationInfo> availableStations,
+			List<String> availableDataTypes, Long lowerTimeBound,
+			Long upperTimeBound) {
+		// get random time series
+
+		DBCollection measCollection = mongoDB
+				.getCollection(MongoDB_Config.COLLECTION_MEASURINGS);
+
+		StationInfo stationInfo = availableStations.get(r
+				.nextInt(availableStations.size()));
+		int serialNo = r.nextInt(stationInfo.getWrCount());
+
+		// configure Map Reduce
+
+		String map = "function() { var r = {count:1, total:this.value, avg:0, timestamp:this.timestamp}; var day = Math.floor(this.timestamp / 1000 / 60 / 60 / 24);	emit(day, r);}";
+
+		String reduce = "function(key, values) { var r = {count:0, total:0, avg:0, timestamp:0}; values.forEach(function(v) { r.total += v.total; r.count += v.count; r.timestamp = v.timestamp; }); return r;}";
+
+		String finalize = "function(k, r) { var date = new Date(r.timestamp); var dateString = date.getDate() + '.' + (date.getMonth() + 1) + '.' + date.getFullYear(); if(r.count > 0) { r.avg = r.total / r.count; } return {date : dateString, res : r};	}";
+
+		String outputCollection = "temp";
+
+		DBObject query = new BasicDBObject();
+		query.put(MongoDB_Config.DATATYPE, DataType.GAIN.toString());
+		query.put(MongoDB_Config.STATION_ID, stationInfo.getName());
+		query.put(MongoDB_Config.SERIAL_NO, serialNo);
+
+		MapReduceCommand mrCommand = new MapReduceCommand(measCollection, map,
+				reduce, outputCollection, OutputType.REPLACE, query);
+		mrCommand.setFinalize(finalize);
+
+		// query the map reduce results for the relevant data
+
+		// get the temp collection
+		DBCollection temp = mongoDB.getCollection(outputCollection);
+
+		DBObject query2 = new BasicDBObject("value.res.total", new BasicDBObject(
+				"$lt", 100000));
+		DBObject projection = new BasicDBObject("value.date", 1);
+
+		// run
+
+		long start = System.currentTimeMillis();
+		measCollection.mapReduce(mrCommand);		
+		temp.find(query2, projection).count();		
+		long diff = System.currentTimeMillis() - start;
+
+		// drop temporary data
+		temp.drop();
+
+		System.out.println(String.format("%s;%d;%d", stationInfo.getName(),
+				serialNo, diff));
 	}
 
 	/**

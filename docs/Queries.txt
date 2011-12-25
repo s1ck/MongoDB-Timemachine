@@ -136,7 +136,7 @@ db.runCommand(
 					
 					values.forEach(function(v) {
 						r.pac += v.pac;
-						r.total_pdc += v.total_pdc;												
+						r.total_pdc += v.total_pdc;
 					});
 					
 					return r;					
@@ -158,13 +158,13 @@ db.runCommand(
 { 	
 	mapreduce 	: "measurings",
 	map 		: function() {
-					var r = {count:1, total:this.value, avg:0, timestamp:this.timestamp}
+					var r = {count:1, total:this.value, avg:0, timestamp:this.timestamp};
 					// group documents by day
 					var day = Math.floor(this.timestamp / 1000 / 60 / 60 / 24);									
 					emit(day, r);
 				},
 	reduce 		: function(key, values) {
-					var r = {count:0, total:0, avg:0, timestamp:0}
+					var r = {count:0, total:0, avg:0, timestamp:0};
 					
 					values.forEach(function(v) {
 						r.total += v.total;
@@ -187,7 +187,7 @@ db.runCommand(
 
 // Abfrage der aggregierten Daten in Ergebnis Collection "temp"
 
-db.temp.find({"value.total" : { $lt : 100 } }, { "value.date" : 1 });
+db.temp.find({"value.res.total" : { $lt : 100 } }, { "value.date" : 1 });
 
 8 Wie groß ist die erzeugte Leistung von Wechselrichter X durchschnittlich pro Temperaturstufe? (d.h. Durchschnitt von PAC je Wert der Temperaturzeitreihe)
 
