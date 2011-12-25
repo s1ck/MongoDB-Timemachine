@@ -6,6 +6,10 @@ import java.util.Random;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
+import com.mongodb.DBObject;
+import com.mongodb.MapReduceCommand;
+import com.mongodb.MapReduceOutput;
+import com.mongodb.MapReduceCommand.OutputType;
 
 import de.uni.leipzig.bis.mongodb.MongoDB_Eval.StationInfo;
 
@@ -92,8 +96,8 @@ public class MongoDB_Queries {
 		DBCollection measCollection = mongoDB
 				.getCollection(MongoDB_Config.COLLECTION_MEASURINGS);
 
-		String dataType = availableDataTypes.get(
-				r.nextInt(availableDataTypes.size()));
+		String dataType = availableDataTypes.get(r.nextInt(availableDataTypes
+				.size()));
 		StationInfo stationInfo = availableStations.get(r
 				.nextInt(availableStations.size()));
 		int serialNo = r.nextInt(stationInfo.getWrCount());
@@ -135,8 +139,8 @@ public class MongoDB_Queries {
 		DBCollection measCollection = mongoDB
 				.getCollection(MongoDB_Config.COLLECTION_MEASURINGS);
 
-		String dataType = availableDataTypes.get(
-				r.nextInt(availableDataTypes.size()));
+		String dataType = availableDataTypes.get(r.nextInt(availableDataTypes
+				.size()));
 		StationInfo stationInfo = availableStations.get(r
 				.nextInt(availableStations.size()));
 		int serialNo = r.nextInt(stationInfo.getWrCount());
@@ -153,9 +157,9 @@ public class MongoDB_Queries {
 		// projection
 		BasicDBObject projection = new BasicDBObject();
 		projection.put(MongoDB_Config.VALUE, 1);
-				
+
 		long diff = processQuery(measCollection, exactQuery, projection);
-		System.out.println(String.format("%s;%d;%d;%d;%d", stationInfo.getName(),
+		System.out.println(String.format("%s;%d;%d;%d", stationInfo.getName(),
 				serialNo, timestamp, diff));
 	}
 
@@ -175,8 +179,8 @@ public class MongoDB_Queries {
 		DBCollection measCollection = mongoDB
 				.getCollection(MongoDB_Config.COLLECTION_MEASURINGS);
 
-		String dataType = availableDataTypes.get(
-				r.nextInt(availableDataTypes.size()));
+		String dataType = availableDataTypes.get(r.nextInt(availableDataTypes
+				.size()));
 		StationInfo stationInfo = availableStations.get(r
 				.nextInt(availableStations.size()));
 		int serialNo = r.nextInt(stationInfo.getWrCount());
@@ -205,7 +209,8 @@ public class MongoDB_Queries {
 	}
 
 	/**
-	 * 4 Wie ist der Zeitpunkt des ältesten/neuesten Eintrags in Zeitreihe XY? (neuester)
+	 * 4 Wie ist der Zeitpunkt des ältesten/neuesten Eintrags in Zeitreihe XY?
+	 * (neuester)
 	 * 
 	 * @param mongoDB
 	 * @param availableStations
@@ -220,8 +225,8 @@ public class MongoDB_Queries {
 		DBCollection measCollection = mongoDB
 				.getCollection(MongoDB_Config.COLLECTION_MEASURINGS);
 
-		String dataType = availableDataTypes.get(
-				r.nextInt(availableDataTypes.size()));
+		String dataType = availableDataTypes.get(r.nextInt(availableDataTypes
+				.size()));
 		StationInfo stationInfo = availableStations.get(r
 				.nextInt(availableStations.size()));
 		int serialNo = r.nextInt(stationInfo.getWrCount());
@@ -234,15 +239,72 @@ public class MongoDB_Queries {
 		// projection
 		BasicDBObject projection = new BasicDBObject();
 		projection.put(MongoDB_Config.TIMESTAMP, 1);
-				
+
 		long start = System.currentTimeMillis();
-		long result = (Long)measCollection.find(query, projection)
+		long result = (Long) measCollection.find(query, projection)
 				.sort(new BasicDBObject(MongoDB_Config.TIMESTAMP, 1)).limit(1)
 				.next().get(MongoDB_Config.TIMESTAMP);
 		long diff = System.currentTimeMillis() - start;
-		
-		System.out.println(String.format("%s;%d;%d;%d",
-				stationInfo.getName(), serialNo, result, diff));
+
+		System.out.println(String.format("%s;%d;%d;%d", stationInfo.getName(),
+				serialNo, result, diff));
+	}
+
+	/**
+	 * 5 Wie ist der maximale/minimale/durchschnittliche Wert der Zeitreihe XY
+	 * im Zeitintervall [von,bis]?
+	 * 
+	 * @param mongoDB
+	 * @param availableStations
+	 * @param availableDataTypes
+	 * @param lowerTimeBound
+	 * @param upperTimeBound
+	 */
+	public static void query5(DB mongoDB, List<StationInfo> availableStations,
+			List<String> availableDataTypes, Long lowerTimeBound,
+			Long upperTimeBound) {
+		// get collection
+		DBCollection measCollection = mongoDB
+				.getCollection(MongoDB_Config.COLLECTION_MEASURINGS);
+
+		String dataType = availableDataTypes.get(r.nextInt(availableDataTypes
+				.size()));
+		StationInfo stationInfo = availableStations.get(r
+				.nextInt(availableStations.size()));
+		int serialNo = r.nextInt(stationInfo.getWrCount());
+		Long lowerBound = getRandomInRange(lowerTimeBound, upperTimeBound, true);
+		Long upperBound = getUpperBound(lowerBound, MongoDB_Config.DAYS);
+
+		String map = "function() { emit(this.stationID, {total:this.value, count:1, avg:0, min:this.value, max:this.value});}";
+
+		String reduce = "function(key, values) {"
+				+ "var r = {total:0, count:0, avg:0, min:0, max:0};"
+				+ " if(values.length > 0) {" + " r.min = values[0].min;"
+				+ " r.max = values[0].max;" + " }"
+				+ " values.forEach(function(v) {" + " r.total += v.total;"
+				+ " r.count += v.count;" + " if(v.min < r.min) {"
+				+ " r.min = v.min;" + " }" + " if(v.max > r.max) {"
+				+ " r.max = v.max;" + " }" + "});" + " return r;" + " }";
+
+		String finalize = "function(k, r) { if(r.count > 0) r.avg = r.total / r.count; return r; }";
+
+		DBObject query = new BasicDBObject();
+		query.put(MongoDB_Config.DATATYPE, dataType);
+		query.put(MongoDB_Config.STATION_ID, stationInfo.getName());
+		query.put(MongoDB_Config.SERIAL_NO, serialNo);
+		query.put(MongoDB_Config.TIMESTAMP,
+				new BasicDBObject("$gt", lowerBound).append("$lt", upperBound));
+
+		MapReduceCommand mrCommand = new MapReduceCommand(measCollection, map,
+				reduce, null, OutputType.INLINE, query);
+		mrCommand.setFinalize(finalize);
+
+		long start = System.currentTimeMillis();
+		measCollection.mapReduce(mrCommand);		
+		long diff = System.currentTimeMillis() - start;
+
+		System.out.println(String.format("%s;%d;%d;%d;%d",
+				stationInfo.getName(), serialNo, lowerBound, upperBound, diff));
 	}
 
 	/**

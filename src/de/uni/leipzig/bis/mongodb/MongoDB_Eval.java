@@ -220,6 +220,13 @@ public class MongoDB_Eval {
 			MongoDB_Queries.query4(mongoDB, availableStations,
 					availableDataTypes, lowerTimeBound, upperTimeBound);
 		}
+
+		// query 5
+		System.out.println("query 5");
+		for (int currentRun = 0; currentRun < MongoDB_Config.RUNS; currentRun++) {
+			MongoDB_Queries.query5(mongoDB, availableStations,
+					availableDataTypes, lowerTimeBound, upperTimeBound);
+		}
 	}
 
 	/**
@@ -260,7 +267,7 @@ public class MongoDB_Eval {
 			}
 			diff = System.currentTimeMillis() - start;
 			System.out.printf(
-					"took %d seconds for %d documents (%d documents / s)",
+					"took %d seconds for %d documents (%d documents / s)\n",
 					diff / 1000, n, n / (diff / 1000));
 			bf.close();
 		} catch (FileNotFoundException fEx) {
