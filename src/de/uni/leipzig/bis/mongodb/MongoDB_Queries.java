@@ -1,12 +1,13 @@
 package de.uni.leipzig.bis.mongodb;
 
-import java.util.Date;
+import java.util.List;
+import java.util.Random;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
 
-import de.uni.leipzig.bis.mongodb.MongoDB_Config.DataType;
+import de.uni.leipzig.bis.mongodb.MongoDB_Eval.StationInfo;
 
 /**
  * A collection of MongoDB Queries on timeseries data.
@@ -15,122 +16,233 @@ import de.uni.leipzig.bis.mongodb.MongoDB_Config.DataType;
  * 
  */
 public class MongoDB_Queries {
+
+	private static Random r = new Random();
+
+	/*
+	 * Helper
+	 */
+
 	/**
-	 * Processes a range query between two given timestamps.
+	 * Returns the Unix Timestamp which is a specified number of days greater
+	 * than the given one.
 	 * 
+	 * @param from
+	 *            start unix timestamp
+	 * @param days
+	 *            number of days
+	 * @return unix timestamp in n days
+	 */
+	private static Long getUpperBound(Long from, int days) {
+		return from + (days * 24L * 60L * 60L * 1000L);
+	}
+
+	/**
+	 * Returns a random Unix Timestamp in a given range.
+	 * 
+	 * @param from
+	 *            lower bound
+	 * @param to
+	 *            upper bound
+	 * @param excludeDays
+	 *            if true, the defined range in config will be substracted from
+	 *            the upperbound to achieve equal ranges
+	 * @return timestamp in range
+	 */
+	private static Long getRandomInRange(Long from, Long to, boolean excludeDays) {
+		if (excludeDays) {
+			from -= (MongoDB_Config.DAYS * 24L * 60L * 60L * 1000L);
+		}
+		return from + nextLong(to - from);
+	}
+
+	/**
+	 * Generates a random long value between 0 and the given upper bound. Taken
+	 * from here:
+	 * http://stackoverflow.com/questions/2546078/java-random-long-number
+	 * -in-0-x-n-range
+	 * 
+	 * @param n
+	 *            maximum excluded value
+	 * @return
+	 */
+	private static long nextLong(long n) {
+		long bits, val;
+		do {
+			bits = (r.nextLong() << 1) >>> 1;
+			val = bits % n;
+		} while (bits - val + (n - 1) < 0L);
+		return val;
+	}
+
+	/**
 	 * 1 Wieviele Einträge hat Zeitreihe XY insgesamt/im Zeitintervall
 	 * [von,bis]?
 	 * 
 	 * @param mongoDB
-	 *            mongoDB instance
-	 * @param dataType
-	 *            the intersting datatype
-	 * @param stationID
-	 *            the selected station
-	 * @param serialNo
-	 *            the serial number of the inverter
-	 * @param fromTimestamp
-	 *            the lower bound of the range
-	 * @param toTimestamp
-	 *            the upper bound of the range
+	 * @param availableStations
+	 * @param availableDataTypes
+	 * @param lowerTimeBound
+	 * @param upperTimeBound
 	 */
-	public static void query1(DB mongoDB, DataType dataType, String stationID,
-			int serialNo, long fromTimestamp, long toTimestamp) {
+	public static void query1(DB mongoDB, List<StationInfo> availableStations,
+			List<String> availableDataTypes, Long lowerTimeBound,
+			Long upperTimeBound) {
 		// get collection
 		DBCollection measCollection = mongoDB
 				.getCollection(MongoDB_Config.COLLECTION_MEASURINGS);
 
-		System.out
-				.println("Query 1: entry count of time series in given range");
-		System.out.println("********************");
-		System.out.printf("from:\t%s\n", new Date(fromTimestamp));
-		System.out.printf("to:\t%s\n", new Date(toTimestamp));
+		String dataType = availableDataTypes.get(
+				r.nextInt(availableDataTypes.size()));
+		StationInfo stationInfo = availableStations.get(r
+				.nextInt(availableStations.size()));
+		int serialNo = r.nextInt(stationInfo.getWrCount());
+		Long lowerBound = getRandomInRange(lowerTimeBound, upperTimeBound, true);
+		Long upperBound = getUpperBound(lowerBound, MongoDB_Config.DAYS);
 
 		// range query
 		BasicDBObject rangeQuery = new BasicDBObject();
 		// identifier
-		rangeQuery.put(MongoDB_Config.DATATYPE, dataType.toString());
-		rangeQuery.put(MongoDB_Config.STATION_ID, stationID);
+		rangeQuery.put(MongoDB_Config.DATATYPE, dataType);
+		rangeQuery.put(MongoDB_Config.STATION_ID, stationInfo.getName());
 		rangeQuery.put(MongoDB_Config.SERIAL_NO, serialNo);
 		// range
 		rangeQuery.put(MongoDB_Config.TIMESTAMP, new BasicDBObject("$gt",
-				fromTimestamp).append("$lt", toTimestamp));
+				lowerBound).append("$lt", upperBound));
 
 		long diff = processQuery(measCollection, rangeQuery);
 
-		System.out.printf("took [ms]:\t%d\n", diff);
-		System.out.println("********************\n\n");
+		System.out.println(String.format("%s;%d;%d;%d;%d",
+				stationInfo.getName(), serialNo, lowerBound, upperBound, diff));
 	}
 
 	/**
-	 * Exact match of timeseries at a given point in time
-	 * 
 	 * 2 Wie ist der Wert der Zeitreihe XY zum Zeitpunkt Z?
 	 * 
+	 * TODO: because of the random timestamps there are mostly no results found.
+	 * Maybe I should chose a random timestamp based in the existing ones
+	 * 
 	 * @param mongoDB
-	 * @param dataType
-	 * @param stationID
-	 * @param serialNo
-	 * @param fromTimestamp
-	 * @param toTimestamp
+	 * @param availableStations
+	 * @param availableDataTypes
+	 * @param lowerTimeBound
+	 * @param upperTimeBound
 	 */
-	public static void query2(DB mongoDB, DataType dataType, String stationID,
-			int serialNo, long timestamp) {
+	public static void query2(DB mongoDB, List<StationInfo> availableStations,
+			List<String> availableDataTypes, Long lowerTimeBound,
+			Long upperTimeBound) {
 		// get collection
 		DBCollection measCollection = mongoDB
 				.getCollection(MongoDB_Config.COLLECTION_MEASURINGS);
 
-		System.out
-				.println("Query 1: value of a time series at a given point in time");
-		System.out.println("********************");
-		System.out.printf("at:\t%s\n", new Date(timestamp));
+		String dataType = availableDataTypes.get(
+				r.nextInt(availableDataTypes.size()));
+		StationInfo stationInfo = availableStations.get(r
+				.nextInt(availableStations.size()));
+		int serialNo = r.nextInt(stationInfo.getWrCount());
+		Long timestamp = getRandomInRange(lowerTimeBound, upperTimeBound, false);
 
 		// exact match query
 		BasicDBObject exactQuery = new BasicDBObject();
 		// selection
 		exactQuery.put(MongoDB_Config.DATATYPE, dataType.toString());
-		exactQuery.put(MongoDB_Config.STATION_ID, stationID);
+		exactQuery.put(MongoDB_Config.STATION_ID, stationInfo.getName());
 		exactQuery.put(MongoDB_Config.SERIAL_NO, serialNo);
 		exactQuery.put(MongoDB_Config.TIMESTAMP, timestamp);
 
 		// projection
 		BasicDBObject projection = new BasicDBObject();
-		projection.put(MongoDB_Config.VALUE, 1);		
-
+		projection.put(MongoDB_Config.VALUE, 1);
+				
 		long diff = processQuery(measCollection, exactQuery, projection);
-
-		System.out.printf("took [ms]:\t%d\n", diff);
-		System.out.println("********************\n\n");
+		System.out.println(String.format("%s;%d;%d;%d;%d", stationInfo.getName(),
+				serialNo, timestamp, diff));
 	}
 
 	/**
-	 * Returns all timestamp where a given value was above a given treshold
+	 * 3 Wie sind die Werte der Zeitreihe XY im Zeitintervall [von,bis]?
 	 * 
 	 * @param mongoDB
-	 *            mongoDB instance
-	 * @param datatype
-	 *            see {@link DataType} for available DataTypes
-	 * @param treshold
-	 *            Treshold as integer value
+	 * @param availableStations
+	 * @param availableDataTypes
+	 * @param lowerTimeBound
+	 * @param upperTimeBound
 	 */
-	public static void tresholdQuery(DB mongoDB, DataType datatype, int treshold) {
+	public static void query3(DB mongoDB, List<StationInfo> availableStations,
+			List<String> availableDataTypes, Long lowerTimeBound,
+			Long upperTimeBound) {
 		// get collection
 		DBCollection measCollection = mongoDB
 				.getCollection(MongoDB_Config.COLLECTION_MEASURINGS);
 
-		System.out.println("Query: Treshold Query 1");
-		System.out.println("********************");
-		System.out.printf("datatype:\t%s\n", datatype);
-		System.out.printf("treshold:\t%d\n", treshold);
+		String dataType = availableDataTypes.get(
+				r.nextInt(availableDataTypes.size()));
+		StationInfo stationInfo = availableStations.get(r
+				.nextInt(availableStations.size()));
+		int serialNo = r.nextInt(stationInfo.getWrCount());
+		Long lowerBound = getRandomInRange(lowerTimeBound, upperTimeBound, true);
+		Long upperBound = getUpperBound(lowerBound, MongoDB_Config.DAYS);
 
-		BasicDBObject tresholdQuery = new BasicDBObject();
-		tresholdQuery.put("datatype", datatype.toString());
-		tresholdQuery.put("value", new BasicDBObject("$gt", treshold));
+		// range query
+		BasicDBObject rangeQuery = new BasicDBObject();
+		// identifier
+		rangeQuery.put(MongoDB_Config.DATATYPE, dataType);
+		rangeQuery.put(MongoDB_Config.STATION_ID, stationInfo.getName());
+		rangeQuery.put(MongoDB_Config.SERIAL_NO, serialNo);
+		// range
+		rangeQuery.put(MongoDB_Config.TIMESTAMP, new BasicDBObject("$gt",
+				lowerBound).append("$lt", upperBound));
 
-		long diff = processQuery(measCollection, tresholdQuery);
+		// projection
+		BasicDBObject projection = new BasicDBObject();
+		projection.put(MongoDB_Config.VALUE, 1);
 
-		System.out.printf("took [ms]:\t%d\n", diff);
-		System.out.println("********************\n\n");
+		// run
+		long diff = processQuery(measCollection, rangeQuery, projection);
+
+		System.out.println(String.format("%s;%d;%d;%d;%d",
+				stationInfo.getName(), serialNo, lowerBound, upperBound, diff));
+	}
+
+	/**
+	 * 4 Wie ist der Zeitpunkt des ältesten/neuesten Eintrags in Zeitreihe XY? (neuester)
+	 * 
+	 * @param mongoDB
+	 * @param availableStations
+	 * @param availableDataTypes
+	 * @param lowerTimeBound
+	 * @param upperTimeBound
+	 */
+	public static void query4(DB mongoDB, List<StationInfo> availableStations,
+			List<String> availableDataTypes, Long lowerTimeBound,
+			Long upperTimeBound) {
+		// get collection
+		DBCollection measCollection = mongoDB
+				.getCollection(MongoDB_Config.COLLECTION_MEASURINGS);
+
+		String dataType = availableDataTypes.get(
+				r.nextInt(availableDataTypes.size()));
+		StationInfo stationInfo = availableStations.get(r
+				.nextInt(availableStations.size()));
+		int serialNo = r.nextInt(stationInfo.getWrCount());
+
+		BasicDBObject query = new BasicDBObject();
+		query.put(MongoDB_Config.DATATYPE, dataType);
+		query.put(MongoDB_Config.STATION_ID, stationInfo.getName());
+		query.put(MongoDB_Config.SERIAL_NO, serialNo);
+
+		// projection
+		BasicDBObject projection = new BasicDBObject();
+		projection.put(MongoDB_Config.TIMESTAMP, 1);
+				
+		long start = System.currentTimeMillis();
+		long result = (Long)measCollection.find(query, projection)
+				.sort(new BasicDBObject(MongoDB_Config.TIMESTAMP, 1)).limit(1)
+				.next().get(MongoDB_Config.TIMESTAMP);
+		long diff = System.currentTimeMillis() - start;
+		
+		System.out.println(String.format("%s;%d;%d;%d",
+				stationInfo.getName(), serialNo, result, diff));
 	}
 
 	/**
@@ -145,16 +257,11 @@ public class MongoDB_Queries {
 		// get collection
 		DBCollection collection = mongoDB.getCollection(collectionName);
 
-		System.out.println("Query: Create Index");
-		System.out.println("********************");
-		System.out.printf("index name:\t%s\n", indexName);
-
 		long start = System.currentTimeMillis();
 		collection.ensureIndex(indexName);
 		long diff = System.currentTimeMillis() - start;
 
-		System.out.printf("took [ms]:\t%d\n", diff);
-		System.out.println("********************\n\n");
+		System.out.println(String.format("%s;%d", indexName, diff));
 	}
 
 	/**
@@ -169,24 +276,19 @@ public class MongoDB_Queries {
 		// get collection
 		DBCollection collection = mongoDB.getCollection(collectionName);
 
-		System.out.println("Query: Drop Index");
-		System.out.println("********************");
-		System.out.printf("index name:\t%s\n", indexName);
-
 		long start = System.currentTimeMillis();
 		collection.dropIndex(indexName + "_1");
 		long diff = System.currentTimeMillis() - start;
 
-		System.out.printf("took [ms]:\t%d\n", diff);
-		System.out.println("********************\n\n");
+		System.out.println(String.format("%s;%d", indexName, diff));
 	}
 
 	private static long processQuery(DBCollection coll, BasicDBObject query) {
 		return processQuery(coll, query, null);
 	}
-	
+
 	/**
-	 * Processes a given query including warmup and test runs.
+	 * Processes a given query and measures the duration.
 	 * 
 	 * @param coll
 	 *            the collection to perform the query on
@@ -200,29 +302,8 @@ public class MongoDB_Queries {
 	 */
 	private static long processQuery(DBCollection coll, BasicDBObject query,
 			BasicDBObject fields) {
-		long[] times = new long[MongoDB_Config.RUNS];
-		long start;
-		long diff;
-
-		// warmup
-		for (int i = 0; i < MongoDB_Config.SKIPS; i++) {
-			coll.find(query, fields).count();
-		}
-
-		// testing
-		for (int i = 0; i < MongoDB_Config.RUNS; i++) {
-			start = System.currentTimeMillis();
-			coll.find(query, fields).count();
-			diff = System.currentTimeMillis() - start;
-			times[i] = diff;
-		}
-
-		long sum = 0L;
-		for (int i = 0; i < times.length; i++) {
-			sum += times[i];
-		}
-
-		return sum / times.length;
+		long start = System.currentTimeMillis();
+		coll.find(query, fields).count();
+		return System.currentTimeMillis() - start;
 	}
-
 }

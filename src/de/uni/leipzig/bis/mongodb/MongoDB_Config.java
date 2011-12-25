@@ -50,39 +50,16 @@ public class MongoDB_Config {
 	 * Eval specific
 	 */
 	
-	/*
+	/**
 	 * Defines the number of warmup runs
 	 */
 	public static final int SKIPS = 0;
-	/*
+	/**
 	 * Defines the number of test runs
 	 */
-	public static final int RUNS = 1;
-	
+	public static final int RUNS = 10;	
 	/**
-	 * Represents the datatypes of the stored values
+	 * Range size for the queries
 	 */
-	public static enum DataType {
-		UDC {
-			public String toString() {
-				return "udc";
-			}
-		}, PDC {
-			public String toString() {
-				return "pdc";
-			}
-		}, PAC {
-			public String toString() {
-				return "pac";
-			}
-		}, TEMP {
-			public String toString() {
-				return "temp";
-			}
-		}, GAIN {
-			public String toString() {
-				return "gain";
-			}
-		}				
-	}
+	public static final int DAYS = 2;
 }

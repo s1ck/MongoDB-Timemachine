@@ -15,8 +15,6 @@ import com.mongodb.DBObject;
 import com.mongodb.Mongo;
 import com.mongodb.MongoException;
 
-import de.uni.leipzig.bis.mongodb.MongoDB_Config.DataType;
-
 /**
  * This project is an evaluation of MongoDB for a usecase where time series data
  * (up to 30M measuring points) has to be stored and queried. Queries are simple
@@ -28,12 +26,86 @@ import de.uni.leipzig.bis.mongodb.MongoDB_Config.DataType;
  */
 public class MongoDB_Eval {
 
-	public static void main(String[] args) throws UnknownHostException,
+	class StationInfo {
+		private String name;
+
+		private int wrCount;
+
+		public String getName() {
+			return name;
+		}
+
+		public int getWrCount() {
+			return wrCount;
+		}
+
+		public StationInfo(String name, int wrCount) {
+			this.name = name;
+			this.wrCount = wrCount;
+		}
+	}
+
+	/**
+	 * Connection to a mongo or mongos instance
+	 */
+	private Mongo m;
+
+	/**
+	 * Reference to the database containing the collections
+	 */
+	private DB db;
+
+	/**
+	 * Path to the data to be imported
+	 */
+	private String dataPath;
+
+	/**
+	 * Information about the stations which can be used for random data
+	 * retrieval. Stations depend on the dataset.
+	 */
+	private List<StationInfo> availableStations;
+
+	private List<String> availableDataTypes;
+
+	private Long lowerTimeBound;
+
+	private Long upperTimeBound;
+
+	/*
+	 * Getter Setter
+	 */
+
+	public Mongo getM() {
+		return m;
+	}
+
+	public DB getDb() {
+		return db;
+	}
+
+	public String getDataPath() {
+		return dataPath;
+	}
+
+	public void setDataPath(String dataPath) {
+		this.dataPath = dataPath;
+	}
+
+	/*
+	 * Public methods
+	 */
+
+	public void initDatabase(String path) throws UnknownHostException,
 			MongoException {
 		// open connection
-		Mongo m = new Mongo(MongoDB_Config.HOST, MongoDB_Config.PORT);
+		m = new Mongo(MongoDB_Config.HOST, MongoDB_Config.PORT);
 		// chose database (will be created if not existing
-		DB db = m.getDB(MongoDB_Config.DB);
+		db = m.getDB(MongoDB_Config.DB);
+		// init the list
+		availableStations = new ArrayList<StationInfo>();
+		// init the available datatypes
+		availableDataTypes = new ArrayList<String>();
 
 		// create collections (if not existing)
 		if (db.getCollection(MongoDB_Config.COLLECTION_MEASURINGS) == null) {
@@ -43,57 +115,110 @@ public class MongoDB_Eval {
 			db.createCollection("stations", null);
 		}
 
-		String dataPath = (args.length > 0) ? args[0] : MongoDB_Config.PATH_6M;
-				
-		importMeasuringPoints(dataPath, db);
-		testMeasurementData(db, true, false);
+		dataPath = path;
+	}
 
+	@SuppressWarnings("unchecked")
+	public void initStations() {
+		DBCollection measurings = db
+				.getCollection(MongoDB_Config.COLLECTION_MEASURINGS);
+		List<String> stationIDs = measurings
+				.distinct(MongoDB_Config.STATION_ID);
+
+		for (String station : stationIDs) {
+			// get the distinct wr ID (serialNo) and count them
+			int wrCount = measurings.distinct(MongoDB_Config.SERIAL_NO,
+					new BasicDBObject(MongoDB_Config.STATION_ID, station))
+					.size();
+
+			// store the information
+			availableStations.add(new StationInfo(station, wrCount));
+		}
+	}
+
+	public void initTimeRange() {
+		DBCollection measurings = db
+				.getCollection(MongoDB_Config.COLLECTION_MEASURINGS);
+
+		lowerTimeBound = (Long) measurings.find()
+				.sort(new BasicDBObject(MongoDB_Config.TIMESTAMP, 1)).limit(1)
+				.next().get(MongoDB_Config.TIMESTAMP);
+
+		upperTimeBound = (Long) measurings.find()
+				.sort(new BasicDBObject(MongoDB_Config.TIMESTAMP, -1)).limit(1)
+				.next().get(MongoDB_Config.TIMESTAMP);
+	}
+
+	@SuppressWarnings("unchecked")
+	public void initDataTypes() {
+		DBCollection measurings = db
+				.getCollection(MongoDB_Config.COLLECTION_MEASURINGS);
+
+		List<String> dataTypes = measurings.distinct(MongoDB_Config.DATATYPE);
+
+		for (String dataType : dataTypes) {
+			// store the information
+			availableDataTypes.add(dataType);
+		}
+	}
+
+	public void shutdown() {
 		// close connection
 		m.close();
 	}
 
+	public void createIndexes(DB mongoDB) {
+		MongoDB_Queries.createIndex(mongoDB,
+				MongoDB_Config.COLLECTION_MEASURINGS, MongoDB_Config.TIMESTAMP);
+		MongoDB_Queries.createIndex(mongoDB,
+				MongoDB_Config.COLLECTION_MEASURINGS, MongoDB_Config.DATATYPE);
+		MongoDB_Queries.createIndex(mongoDB,
+				MongoDB_Config.COLLECTION_MEASURINGS, MongoDB_Config.VALUE);
+	}
+
+	public void dropIndexes(DB mongoDB) {
+		MongoDB_Queries.dropIndex(mongoDB,
+				MongoDB_Config.COLLECTION_MEASURINGS, MongoDB_Config.TIMESTAMP);
+		MongoDB_Queries.dropIndex(mongoDB,
+				MongoDB_Config.COLLECTION_MEASURINGS, MongoDB_Config.DATATYPE);
+		MongoDB_Queries.dropIndex(mongoDB,
+				MongoDB_Config.COLLECTION_MEASURINGS, MongoDB_Config.VALUE);
+	}
+
 	/**
-	 * Performs a set of queries on the mongoDB instance.
+	 * Processes the queries
 	 * 
 	 * @param mongoDB
-	 *            the mongoDB instance to perform queries on
-	 * @param createIndices
-	 *            true if indices shall be used for the queries (takes time to
-	 *            create / drop)
+	 *            mongodb connection
 	 */
-	private static void testMeasurementData(DB mongoDB, boolean createIndices,
-			boolean dropIndices) {
-		// create indices
-		if (createIndices) {
-			MongoDB_Queries.createIndex(mongoDB,
-					MongoDB_Config.COLLECTION_MEASURINGS,
-					MongoDB_Config.TIMESTAMP);
-			MongoDB_Queries.createIndex(mongoDB,
-					MongoDB_Config.COLLECTION_MEASURINGS,
-					MongoDB_Config.DATATYPE);
-			MongoDB_Queries.createIndex(mongoDB,
-					MongoDB_Config.COLLECTION_MEASURINGS, MongoDB_Config.VALUE);
+	public void processQueries(DB mongoDB) {
+
+		// query 1
+		System.out.println("query 1");
+		for (int currentRun = 0; currentRun < MongoDB_Config.RUNS; currentRun++) {
+			MongoDB_Queries.query1(mongoDB, availableStations,
+					availableDataTypes, lowerTimeBound, upperTimeBound);
 		}
 
-		// query 1 (range)
-		MongoDB_Queries.query1(mongoDB, DataType.GAIN, "wendlinghausen2", 1,
-				1269953100000L, 1269970200000L);
-		// query 2 (exact match)
-		MongoDB_Queries.query2(mongoDB, DataType.GAIN, "wendlinghausen2", 1,
-				1269953100000L);
+		// query 2
+		System.out.println("query 2");
+		for (int currentRun = 0; currentRun < MongoDB_Config.RUNS; currentRun++) {
+			MongoDB_Queries.query2(mongoDB, availableStations,
+					availableDataTypes, lowerTimeBound, upperTimeBound);
+		}
 
-		// MongoDB_Queries.tresholdQuery(mongoDB, DataType.GAIN, 20000);
+		// query 3
+		System.out.println("query 3");
+		for (int currentRun = 0; currentRun < MongoDB_Config.RUNS; currentRun++) {
+			MongoDB_Queries.query3(mongoDB, availableStations,
+					availableDataTypes, lowerTimeBound, upperTimeBound);
+		}
 
-		// drop indices
-		if (dropIndices) {
-			MongoDB_Queries.dropIndex(mongoDB,
-					MongoDB_Config.COLLECTION_MEASURINGS,
-					MongoDB_Config.TIMESTAMP);
-			MongoDB_Queries.dropIndex(mongoDB,
-					MongoDB_Config.COLLECTION_MEASURINGS,
-					MongoDB_Config.DATATYPE);
-			MongoDB_Queries.dropIndex(mongoDB,
-					MongoDB_Config.COLLECTION_MEASURINGS, MongoDB_Config.VALUE);
+		// query 4
+		System.out.println("query 4");
+		for (int currentRun = 0; currentRun < MongoDB_Config.RUNS; currentRun++) {
+			MongoDB_Queries.query4(mongoDB, availableStations,
+					availableDataTypes, lowerTimeBound, upperTimeBound);
 		}
 	}
 
@@ -105,8 +230,7 @@ public class MongoDB_Eval {
 	 * @param mongoDB
 	 *            the mongoDB instance
 	 */
-	@SuppressWarnings("unused")
-	private static void importMeasuringPoints(String csvFile, DB mongoDB) {
+	public void importData(String csvFile, DB mongoDB) {
 		List<BasicDBObject> dbObjectPuffer = new ArrayList<BasicDBObject>(
 				MongoDB_Config.BUFFER_SIZE);
 		BufferedReader bf;
@@ -116,7 +240,6 @@ public class MongoDB_Eval {
 			String line;
 			long n = 0L;
 
-			System.out.println("importing data");
 			long start = System.currentTimeMillis();
 			long diff = 0L;
 			while ((line = bf.readLine()) != null) {
@@ -147,6 +270,10 @@ public class MongoDB_Eval {
 		}
 	}
 
+	/*
+	 * Private Helpers
+	 */
+
 	/**
 	 * Creates a Database Object from a given csv String
 	 * 
@@ -154,7 +281,7 @@ public class MongoDB_Eval {
 	 *            CSV data information about the database object
 	 * @return the Database Object
 	 */
-	private static BasicDBObject createDBObjectFromData(String line) {
+	private BasicDBObject createDBObjectFromData(String line) {
 		String[] documentData = line.split(";");
 
 		BasicDBObject dbObj = new BasicDBObject();
@@ -195,12 +322,59 @@ public class MongoDB_Eval {
 	 * @param mongoDB
 	 *            mongoDB instance where the documents are stored
 	 */
-	private static void writeDataToDB(List<BasicDBObject> documents, DB mongoDB) {
+	private void writeDataToDB(List<BasicDBObject> documents, DB mongoDB) {
 		DBCollection measurementCollection = mongoDB
 				.getCollectionFromString(MongoDB_Config.COLLECTION_MEASURINGS);
 
 		for (DBObject dbObj : documents) {
 			measurementCollection.save(dbObj);
 		}
+	}
+
+	/*
+	 * Main
+	 */
+
+	/**
+	 * Main program
+	 * 
+	 * @param args
+	 * @throws UnknownHostException
+	 * @throws MongoException
+	 */
+	public static void main(String[] args) throws UnknownHostException,
+			MongoException {
+		MongoDB_Eval eval = new MongoDB_Eval();
+		// initialize connection to mongodb and database
+		System.out.println("initializing connection...");
+		eval.initDatabase((args.length > 0) ? args[0]
+				: MongoDB_Config.PATH_380K);
+
+		// data import
+		System.out.println("importing data...");
+		eval.importData(eval.getDataPath(), eval.getDb());
+
+		// create indexes (if not existing)
+		System.out.println("creating indexes...");
+		eval.createIndexes(eval.getDb());
+
+		// check which stations are available in the dataset
+		System.out.println("initializing available stations...");
+		eval.initStations();
+
+		// get the time range of the dataset
+		System.out.println("initializing time range...");
+		eval.initTimeRange();
+
+		// get the available datatypes
+		System.out.println("initializing available datatypes...");
+		eval.initDataTypes();
+
+		// process the benchmark
+		System.out.println("processing the benchmark...");
+		eval.processQueries(eval.getDb());
+
+		// shutdown the connection
+		eval.shutdown();
 	}
 }
