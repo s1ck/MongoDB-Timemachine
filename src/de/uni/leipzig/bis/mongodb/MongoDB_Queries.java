@@ -429,20 +429,97 @@ public class MongoDB_Queries {
 		// get the temp collection
 		DBCollection temp = mongoDB.getCollection(outputCollection);
 
-		DBObject query2 = new BasicDBObject("value.res.total", new BasicDBObject(
-				"$lt", 100000));
+		DBObject query2 = new BasicDBObject("value.res.total",
+				new BasicDBObject("$lt", 100000));
 		DBObject projection = new BasicDBObject("value.date", 1);
 
 		// run
 
 		long start = System.currentTimeMillis();
-		measCollection.mapReduce(mrCommand);		
-		temp.find(query2, projection).count();		
+		measCollection.mapReduce(mrCommand);
+		temp.find(query2, projection).count();
 		long diff = System.currentTimeMillis() - start;
 
 		// drop temporary data
 		temp.drop();
 
+		System.out.println(String.format("%s;%d;%d", stationInfo.getName(),
+				serialNo, diff));
+	}
+
+	/**
+	 * 8 Wie groß ist die erzeugte Leistung von Wechselrichter X
+	 * durchschnittlich pro Temperaturstufe? (d.h. Durchschnitt von PAC je Wert
+	 * der Temperaturzeitreihe)
+	 * 
+	 * This query has 2 map reduce phases: Phase 1 groups PAC and TEMP by
+	 * timestamp Phase 2 groups the docs fom Phase 1 by TEMP and calculates the
+	 * average PAC
+	 * 
+	 * @param mongoDB
+	 * @param availableStations
+	 * @param availableDataTypes
+	 * @param lowerTimeBound
+	 * @param upperTimeBound
+	 */
+	public static void query8(DB mongoDB, List<StationInfo> availableStations,
+			List<String> availableDataTypes, Long lowerTimeBound,
+			Long upperTimeBound) {
+		// get random time series
+
+		DBCollection measCollection = mongoDB
+				.getCollection(MongoDB_Config.COLLECTION_MEASURINGS);
+
+		StationInfo stationInfo = availableStations.get(r
+				.nextInt(availableStations.size()));
+		int serialNo = r.nextInt(stationInfo.getWrCount());
+
+		// configure Map Reduce Phase 1
+
+		String map = "function() { var r = { temp : 0, pac : 0 }; if(this.datatype == 'temp') r.temp = this.value; else r.pac = this.value; emit(this.timestamp, r);}";
+
+		String reduce = "function(key, values) { var r = { temp : 0, pac : 0 }; values.forEach(function(v) {if(v.temp > 0) r.temp = v.temp; else r.pac = v.pac; }); return r; }";
+
+		String outputCollection = "temp";
+
+		DBObject query = new BasicDBObject();
+		// TEMP or PAC
+		BasicDBList list = new BasicDBList();
+		list.add(DataType.TEMP.toString());
+		list.add(DataType.PAC.toString());
+
+		query.put(MongoDB_Config.DATATYPE, new BasicDBObject("$in", list));
+		query.put(MongoDB_Config.STATION_ID, stationInfo.getName());
+		query.put(MongoDB_Config.SERIAL_NO, serialNo);
+
+		MapReduceCommand mrCommand1 = new MapReduceCommand(measCollection, map,
+				reduce, outputCollection, OutputType.REPLACE, query);
+
+		// configure Map Reduce Phase 2
+
+		DBCollection tempCollection = mongoDB.getCollection(outputCollection);
+
+		String map2 = "function() { var r = { temp : 0, pac : 0 }; if(this.datatype == 'temp') r.temp = this.value; else r.pac = this.value; emit(this.timestamp, r);}";
+
+		String reduce2 = "function(key, values) { var r = { temp : 0, pac : 0 }; values.forEach(function(v) {if(v.temp > 0) r.temp = v.temp; else r.pac = v.pac; }); return r; }";
+
+		String finalize = "function(key, value) { if(value.count > 0) return{temp : key, avg_pac : value.total_pac / value.count };}";
+
+		MapReduceCommand mrCommand2 = new MapReduceCommand(tempCollection,
+				map2, reduce2, null, OutputType.INLINE, query);
+		mrCommand2.setFinalize(finalize);
+
+		// run
+
+		long start = System.currentTimeMillis();
+		measCollection.mapReduce(mrCommand1);
+		tempCollection.mapReduce(mrCommand2);
+		long diff = System.currentTimeMillis() - start;
+
+		// drop temporary data
+
+		tempCollection.drop();
+		
 		System.out.println(String.format("%s;%d;%d", stationInfo.getName(),
 				serialNo, diff));
 	}

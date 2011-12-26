@@ -241,6 +241,13 @@ public class MongoDB_Eval {
 			MongoDB_Queries.query7(mongoDB, availableStations,
 					availableDataTypes, lowerTimeBound, upperTimeBound);
 		}
+
+		// query 8
+		System.out.println("query 8");
+		for (int currentRun = 0; currentRun < MongoDB_Config.RUNS; currentRun++) {
+			MongoDB_Queries.query8(mongoDB, availableStations,
+					availableDataTypes, lowerTimeBound, upperTimeBound);
+		}
 	}
 
 	/**
