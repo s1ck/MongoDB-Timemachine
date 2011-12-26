@@ -8,12 +8,16 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.xml.crypto.Data;
+
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 import com.mongodb.Mongo;
 import com.mongodb.MongoException;
+
+import de.uni.leipzig.bis.mongodb.MongoDB_Config.DataType;
 
 /**
  * This project is an evaluation of MongoDB for a usecase where time series data
@@ -195,56 +199,56 @@ public class MongoDB_Eval {
 
 		// query 1
 		System.out.println("query 1");
-		for (int currentRun = 0; currentRun < MongoDB_Config.RUNS; currentRun++) {
+		for (int currentRun = 0; currentRun < MongoDB_Config.LOCAL_RUNS; currentRun++) {
 			MongoDB_Queries.query1(mongoDB, availableStations,
 					availableDataTypes, lowerTimeBound, upperTimeBound);
 		}
 
 		// query 2
 		System.out.println("query 2");
-		for (int currentRun = 0; currentRun < MongoDB_Config.RUNS; currentRun++) {
+		for (int currentRun = 0; currentRun < MongoDB_Config.LOCAL_RUNS; currentRun++) {
 			MongoDB_Queries.query2(mongoDB, availableStations,
 					availableDataTypes, lowerTimeBound, upperTimeBound);
 		}
 
 		// query 3
 		System.out.println("query 3");
-		for (int currentRun = 0; currentRun < MongoDB_Config.RUNS; currentRun++) {
+		for (int currentRun = 0; currentRun < MongoDB_Config.LOCAL_RUNS; currentRun++) {
 			MongoDB_Queries.query3(mongoDB, availableStations,
 					availableDataTypes, lowerTimeBound, upperTimeBound);
 		}
 
 		// query 4
 		System.out.println("query 4");
-		for (int currentRun = 0; currentRun < MongoDB_Config.RUNS; currentRun++) {
+		for (int currentRun = 0; currentRun < MongoDB_Config.LOCAL_RUNS; currentRun++) {
 			MongoDB_Queries.query4(mongoDB, availableStations,
 					availableDataTypes, lowerTimeBound, upperTimeBound);
 		}
 
 		// query 5
 		System.out.println("query 5");
-		for (int currentRun = 0; currentRun < MongoDB_Config.RUNS; currentRun++) {
+		for (int currentRun = 0; currentRun < MongoDB_Config.LOCAL_RUNS; currentRun++) {
 			MongoDB_Queries.query5(mongoDB, availableStations,
 					availableDataTypes, lowerTimeBound, upperTimeBound);
 		}
 
 		// query 6
 		System.out.println("query 6");
-		for (int currentRun = 0; currentRun < MongoDB_Config.RUNS; currentRun++) {
+		for (int currentRun = 0; currentRun < MongoDB_Config.LOCAL_RUNS; currentRun++) {
 			MongoDB_Queries.query6(mongoDB, availableStations,
 					availableDataTypes, lowerTimeBound, upperTimeBound);
 		}
 
 		// query 7
 		System.out.println("query 7");
-		for (int currentRun = 0; currentRun < MongoDB_Config.RUNS; currentRun++) {
+		for (int currentRun = 0; currentRun < MongoDB_Config.LOCAL_RUNS; currentRun++) {
 			MongoDB_Queries.query7(mongoDB, availableStations,
 					availableDataTypes, lowerTimeBound, upperTimeBound);
 		}
 
 		// query 8
 		System.out.println("query 8");
-		for (int currentRun = 0; currentRun < MongoDB_Config.RUNS; currentRun++) {
+		for (int currentRun = 0; currentRun < MongoDB_Config.LOCAL_RUNS; currentRun++) {
 			MongoDB_Queries.query8(mongoDB, availableStations,
 					availableDataTypes, lowerTimeBound, upperTimeBound);
 		}
@@ -331,8 +335,8 @@ public class MongoDB_Eval {
 			// datatype (Datenart)
 			dbObj.put(MongoDB_Config.DATATYPE, identifierData[3]);
 			// optional data
-			if (identifierData[3].equals(MongoDB_Config.PDC)
-					|| identifierData[3].equals(MongoDB_Config.UDC)) {
+			if (identifierData[3].equals(DataType.PDC.toString())
+					|| identifierData[3].equals(DataType.UDC.toString())) {
 				// "string"
 				dbObj.put(MongoDB_Config.OPT_STRING, identifierData[4]);
 				// serial number 2
@@ -373,34 +377,45 @@ public class MongoDB_Eval {
 	public static void main(String[] args) throws UnknownHostException,
 			MongoException {
 		MongoDB_Eval eval = new MongoDB_Eval();
-		// initialize connection to mongodb and database
-		System.out.println("initializing connection...");
-		eval.initDatabase((args.length > 0) ? args[0]
-				: MongoDB_Config.PATH_380K);
 
-		// data import
-		System.out.println("importing data...");
-		eval.importData(eval.getDataPath(), eval.getDb());
+		// init the configuration for the benchmark
+		MongoDB_Config.initConfig((args.length > 0) ? args[0]
+				: "config/mongodb.properties");
 
-		// create indexes (if not existing)
-		System.out.println("creating indexes...");
-		eval.createIndexes(eval.getDb());
+		for (int globalRun = 1; globalRun <= MongoDB_Config.GLOBAL_RUNS; globalRun++) {
 
-		// check which stations are available in the dataset
-		System.out.println("initializing available stations...");
-		eval.initStations();
+			System.out.println(String.format(
+					"Starting global run %d using dataset %s", globalRun,
+					MongoDB_Config.PATH));
 
-		// get the time range of the dataset
-		System.out.println("initializing time range...");
-		eval.initTimeRange();
+			// initialize connection to mongodb and database
+			System.out.println("initializing connection...");
+			eval.initDatabase(MongoDB_Config.PATH);
 
-		// get the available datatypes
-		System.out.println("initializing available datatypes...");
-		eval.initDataTypes();
+			// data import
+			System.out.println("importing data...");
+			eval.importData(eval.getDataPath(), eval.getDb());
 
-		// process the benchmark
-		System.out.println("processing the benchmark...");
-		eval.processQueries(eval.getDb());
+			// create indexes (if not existing)
+			System.out.println("creating indexes...");
+			eval.createIndexes(eval.getDb());
+
+			// check which stations are available in the dataset
+			System.out.println("initializing available stations...");
+			eval.initStations();
+
+			// get the time range of the dataset
+			System.out.println("initializing time range...");
+			eval.initTimeRange();
+
+			// get the available datatypes
+			System.out.println("initializing available datatypes...");
+			eval.initDataTypes();
+
+			// process the benchmark
+			System.out.println("processing the benchmark...");
+			eval.processQueries(eval.getDb());
+		}
 
 		// shutdown the connection
 		eval.shutdown();

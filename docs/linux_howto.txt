@@ -5,15 +5,15 @@ in MongoDB_Eval
 javac -d bin -cp lib/mongo-2.7.2.jar src/de/uni/leipzig/bis/mongodb/MongoDB_Queries.java src/de/uni/leipzig/bis/mongodb/MongoDB_Eval.java src/de/uni/leipzig/bis/mongodb/MongoDB_Config.java
 
 Run:
-in MongoDB_Eval/bin
-java -cp .:../lib/mongo-2.7.2.jar de.uni.leipzig.bis.mongodb.MongoDB_Eval
+in MongoDB_Eval
+java -cp src/*:lib/mongo-2.7.2.jar de.uni.leipzig.bis.mongodb.MongoDB_Eval
 
 Run and quit ssh:
 nohup java -cp .:../lib/mongo-2.7.2.jar de.uni.leipzig.bis.mongodb.MongoDB_Eval ../data/30mio.csv > out.log 2> out.err < /dev/null &
 
 2 MongoDB
 
-Starten als Daemon (Pfade müssen existieren)
+Starten als Daemon (Pfade mÃ¼ssen existieren)
 ./mongod --fork --logpath /var/log/mongodb.log --logappend --dbpath ../../databases/6M --port 27020
 ./mongod --fork --logpath /var/log/mongodb.log --logappend --dbpath ../../databases/30M --port 27020
 
