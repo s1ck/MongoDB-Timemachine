@@ -8,8 +8,6 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.xml.crypto.Data;
-
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
@@ -196,6 +194,8 @@ public class MongoDB_Eval {
 	 *            mongodb connection
 	 */
 	public void processQueries(DB mongoDB) {
+
+		MongoDB_Queries.initRandom();
 
 		// query 1
 		System.out.println("query 1");
@@ -392,9 +392,11 @@ public class MongoDB_Eval {
 			System.out.println("initializing connection...");
 			eval.initDatabase(MongoDB_Config.PATH);
 
-			// data import
-			System.out.println("importing data...");
-			eval.importData(eval.getDataPath(), eval.getDb());
+			if (MongoDB_Config.IMPORT) {
+				// data import
+				System.out.println("importing data...");
+				eval.importData(eval.getDataPath(), eval.getDb());
+			}
 
 			// create indexes (if not existing)
 			System.out.println("creating indexes...");

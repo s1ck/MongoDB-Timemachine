@@ -7,11 +7,9 @@ import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
-import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.MapReduceCommand;
 import com.mongodb.MapReduceCommand.OutputType;
-import com.mongodb.MapReduceOutput;
 
 import de.uni.leipzig.bis.mongodb.MongoDB_Config.DataType;
 import de.uni.leipzig.bis.mongodb.MongoDB_Eval.StationInfo;
@@ -24,7 +22,7 @@ import de.uni.leipzig.bis.mongodb.MongoDB_Eval.StationInfo;
  */
 public class MongoDB_Queries {
 
-	private static Random r = new Random();
+	private static Random r;
 
 	/*
 	 * Helper
@@ -80,6 +78,11 @@ public class MongoDB_Queries {
 			val = bits % n;
 		} while (bits - val + (n - 1) < 0L);
 		return val;
+	}
+
+	public static void initRandom() {
+		r = (MongoDB_Config.RANDOM_SEED == -1) ? new Random() : new Random(
+				MongoDB_Config.RANDOM_SEED);
 	}
 
 	/**
@@ -519,7 +522,7 @@ public class MongoDB_Queries {
 		// drop temporary data
 
 		tempCollection.drop();
-		
+
 		System.out.println(String.format("%s;%d;%d", stationInfo.getName(),
 				serialNo, diff));
 	}

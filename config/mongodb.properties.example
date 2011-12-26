@@ -41,4 +41,8 @@ eval.globalruns=2
 eval.localruns=10
 # number of days for range queries
 eval.days=2
+# random seed (use -1 for none)
+eval.seed=13372342
+# true if data shall be imported
+eval.import=true
 

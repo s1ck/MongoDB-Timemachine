@@ -83,7 +83,15 @@ public class MongoDB_Config {
 	/**
 	 * Range size for the queries
 	 */
-	public static int DAYS;
+	public static int DAYS;	
+	/**
+	 * Random seed
+	 */
+	public static int RANDOM_SEED;	
+	/**
+	 * True if data shall be imported, else false
+	 */
+	public static boolean IMPORT;
 
 	public static void initConfig(String configFile) {
 		Properties properties = new Properties();
@@ -134,7 +142,9 @@ public class MongoDB_Config {
 					.getProperty("eval.globalruns"));
 			LOCAL_RUNS = Integer.parseInt(properties
 					.getProperty("eval.localruns"));
-			DAYS = Integer.parseInt(properties.getProperty("eval.days"));
+			DAYS = Integer.parseInt(properties.getProperty("eval.days"));			
+			RANDOM_SEED = Integer.parseInt(properties.getProperty("eval.seed"));
+			IMPORT = Boolean.parseBoolean(properties.getProperty("eval.import"));
 		}
 	}
 
