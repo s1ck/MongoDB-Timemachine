@@ -1,24 +1,59 @@
 1 Java
 
-Compile:
-in MongoDB_Eval
+1.1 Compile (in MongoDB_Eval)
+
 javac -d bin -cp lib/mongo-2.7.2.jar src/de/uni/leipzig/bis/mongodb/MongoDB_Queries.java src/de/uni/leipzig/bis/mongodb/MongoDB_Eval.java src/de/uni/leipzig/bis/mongodb/MongoDB_Config.java
 
-Run:
-in MongoDB_Eval
+1.2 Run (in MongoDB_Eval)
+
 java -cp bin:lib/mongo-2.7.2.jar de.uni.leipzig.bis.mongodb.MongoDB_Eval
 
-Run and quit ssh:
+1.3 Run via nohup (makes quitting ssh possible)
+
 nohup java -cp bin:lib/mongo-2.7.2.jar de.uni.leipzig.bis.mongodb.MongoDB_Eval > out/out.log 2> out/out.err < /dev/null &
 
 2 MongoDB
 
-Starten als Daemon (Pfade müssen existieren)
+2.1 Start as deamon (paths are existing)
+
 ./mongod --fork --logpath /var/log/mongodb.log --logappend --dbpath ../../databases/6M --port 27020
 ./mongod --fork --logpath /var/log/mongodb.log --logappend --dbpath ../../databases/30M --port 27020
 
-Beenden
+2.2 Shutdown server
+
 ./mongo
-> use admin
-> db.shutdownServer()
+use admin
+db.shutdownServer()
+
+3 Sharding 12M documents, 3 mongod instances, 1 config server, 1 mongos @VM1
+
+3.1 data nodes
+
+sudo ./mongod --fork --logpath /var/log/mongodb1.log --logappend --dbpath ../../databases/12M_sharded/1 --port 27021
+sudo ./mongod --fork --logpath /var/log/mongodb2.log --logappend --dbpath ../../databases/12M_sharded/2 --port 27022
+sudo ./mongod --fork --logpath /var/log/mongodb3.log --logappend --dbpath ../../databases/12M_sharded/3 --port 27023
+
+3.2 config nodes
+
+sudo ./mongod --configsvr --fork --logpath /var/log/mongodb_config.log --dbpath ../../databases/12M_sharded/config/ --port 27025
+
+3.3 mongos
+
+sudo ./mongos --fork --logpath /var/log/mongos.log --logappend --configdb localhost:27024 --port 27017
+
+3.4 configure
+
+./mongo localhost:27017/admin
+db.runCommand({addshard : "localhost:27021"});
+db.runCommand({addshard : "localhost:27022"});
+db.runCommand({addshard : "localhost:27023"});
+
+db.runCommand({enablesharding : "BIS_mongo_eval"});
+db.runCommand({shardcollection : "BIS_mongo_eval.measurings", key : { timestamp : 1}});
+
+3.5 admin
+
+./mongo localhost:27017/admin
+db.printShardingStatus()
+
 
