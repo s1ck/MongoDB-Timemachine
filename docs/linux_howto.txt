@@ -6,10 +6,10 @@ javac -d bin -cp lib/mongo-2.7.2.jar src/de/uni/leipzig/bis/mongodb/MongoDB_Quer
 
 Run:
 in MongoDB_Eval
-java -cp src/*:lib/mongo-2.7.2.jar de.uni.leipzig.bis.mongodb.MongoDB_Eval
+java -cp bin:lib/mongo-2.7.2.jar de.uni.leipzig.bis.mongodb.MongoDB_Eval
 
 Run and quit ssh:
-nohup java -cp .:../lib/mongo-2.7.2.jar de.uni.leipzig.bis.mongodb.MongoDB_Eval ../data/30mio.csv > out.log 2> out.err < /dev/null &
+nohup java -cp bin:lib/mongo-2.7.2.jar de.uni.leipzig.bis.mongodb.MongoDB_Eval > out/out.log 2> out/out.err < /dev/null &
 
 2 MongoDB
 
