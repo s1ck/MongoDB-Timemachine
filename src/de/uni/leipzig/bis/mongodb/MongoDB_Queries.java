@@ -291,7 +291,10 @@ public class MongoDB_Queries {
 
 		// configure Map Reduce
 
-		String map = "function() { emit(this.stationID, {total:this.value, count:1, avg:0, min:this.value, max:this.value});}";
+		String map = "function() { emit(this." + MongoDB_Config.STATION_ID
+				+ ", {total:this." + MongoDB_Config.VALUE
+				+ ", count:1, avg:0, min:this." + MongoDB_Config.VALUE
+				+ ", max:this." + MongoDB_Config.VALUE + "});}";
 
 		String reduce = "function(key, values) {"
 				+ "var r = {total:0, count:0, avg:0, min:0, max:0};"
@@ -351,7 +354,11 @@ public class MongoDB_Queries {
 
 		// configure Map Reduce
 
-		String map = "function() { var r = {pac:0, total_pdc:0}; if(this.datatype == 'pac') { r.pac = this.value; } else { r.total_pdc = this.value;} emit(this.timestamp, r);}";
+		String map = "function() { var r = {pac:0, total_pdc:0}; if(this."
+				+ MongoDB_Config.DATATYPE + " == 'pac') { r.pac = this."
+				+ MongoDB_Config.VALUE + "; } else { r.total_pdc = this."
+				+ MongoDB_Config.VALUE + ";} emit(this."
+				+ MongoDB_Config.TIMESTAMP + ", r);}";
 
 		String reduce = "function(key, values) { var r = {pac : 0, total_pdc:0}; values.forEach(function(v) { r.pac += v.pac; r.total_pdc += v.total_pdc;}); return r;}";
 
@@ -410,7 +417,11 @@ public class MongoDB_Queries {
 
 		// configure Map Reduce
 
-		String map = "function() { var r = {count:1, total:this.value, avg:0, timestamp:this.timestamp}; var day = Math.floor(this.timestamp / 1000 / 60 / 60 / 24);	emit(day, r);}";
+		String map = "function() { var r = {count:1, total:this."
+				+ MongoDB_Config.VALUE + ", avg:0, timestamp:this."
+				+ MongoDB_Config.TIMESTAMP + "}; var day = Math.floor(this."
+				+ MongoDB_Config.TIMESTAMP
+				+ " / 1000 / 60 / 60 / 24);	emit(day, r);}";
 
 		String reduce = "function(key, values) { var r = {count:0, total:0, avg:0, timestamp:0}; values.forEach(function(v) { r.total += v.total; r.count += v.count; r.timestamp = v.timestamp; }); return r;}";
 
@@ -479,7 +490,11 @@ public class MongoDB_Queries {
 
 		// configure Map Reduce Phase 1
 
-		String map = "function() { var r = { temp : 0, pac : 0 }; if(this.datatype == 'temp') r.temp = this.value; else r.pac = this.value; emit(this.timestamp, r);}";
+		String map = "function() { var r = { temp : 0, pac : 0 }; if(this."
+				+ MongoDB_Config.DATATYPE + " == 'temp') r.temp = this."
+				+ MongoDB_Config.VALUE + "; else r.pac = this."
+				+ MongoDB_Config.VALUE + "; emit(this."
+				+ MongoDB_Config.TIMESTAMP + ", r);}";
 
 		String reduce = "function(key, values) { var r = { temp : 0, pac : 0 }; values.forEach(function(v) {if(v.temp > 0) r.temp = v.temp; else r.pac = v.pac; }); return r; }";
 
@@ -502,7 +517,11 @@ public class MongoDB_Queries {
 
 		DBCollection tempCollection = mongoDB.getCollection(outputCollection);
 
-		String map2 = "function() { var r = { temp : 0, pac : 0 }; if(this.datatype == 'temp') r.temp = this.value; else r.pac = this.value; emit(this.timestamp, r);}";
+		String map2 = "function() { var r = { temp : 0, pac : 0 }; if(this."
+				+ MongoDB_Config.DATATYPE + " == 'temp') r.temp = this."
+				+ MongoDB_Config.VALUE + "; else r.pac = this."
+				+ MongoDB_Config.VALUE + "; emit(this."
+				+ MongoDB_Config.TIMESTAMP + ", r);}";
 
 		String reduce2 = "function(key, values) { var r = { temp : 0, pac : 0 }; values.forEach(function(v) {if(v.temp > 0) r.temp = v.temp; else r.pac = v.pac; }); return r; }";
 

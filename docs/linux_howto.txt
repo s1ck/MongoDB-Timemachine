@@ -25,33 +25,86 @@ nohup java -cp bin:lib/mongo-2.7.2.jar de.uni.leipzig.bis.mongodb.MongoDB_Eval >
 use admin
 db.shutdownServer()
 
-3 Sharding 12M documents, 3 mongod instances, 1 config server, 1 mongos @VM1
+3 Sharding documents, 7 mongod instances, 1 config server, 1 mongos @VM1
 
 3.1 data nodes
 
-sudo ./mongod --fork --logpath /var/log/mongodb1.log --logappend --dbpath ../../databases/12M_sharded/1 --port 27021
-sudo ./mongod --fork --logpath /var/log/mongodb2.log --logappend --dbpath ../../databases/12M_sharded/2 --port 27022
-sudo ./mongod --fork --logpath /var/log/mongodb3.log --logappend --dbpath ../../databases/12M_sharded/3 --port 27023
+192.168.0.100
+
+sudo ./mongod --fork --logpath /var/log/mongodb1.log --logappend --dbpath ../../databases/1B/1 --port 27021
+sudo ./mongod --fork --logpath /var/log/mongodb2.log --logappend --dbpath ../../databases/1B/2 --port 27022
+sudo ./mongod --fork --logpath /var/log/mongodb3.log --logappend --dbpath ../../databases/1B/3 --port 27023
+
+192.168.0.104
+
+sudo ./mongod --fork --logpath /var/log/mongodb4.log --logappend --dbpath ../../databases/1B/4 --port 27021
+sudo ./mongod --fork --logpath /var/log/mongodb5.log --logappend --dbpath ../../databases/1B/5 --port 27022
+
+192.168.0.105
+
+sudo ./mongod --fork --logpath /var/log/mongodb6.log --logappend --dbpath ../../databases/1B/6 --port 27021
+sudo ./mongod --fork --logpath /var/log/mongodb7.log --logappend --dbpath ../../databases/1B/7 --port 27022
 
 3.2 config nodes
 
-sudo ./mongod --configsvr --fork --logpath /var/log/mongodb_config.log --dbpath ../../databases/12M_sharded/config/ --port 27025
+192.168.0.100
+sudo ./mongod --configsvr --fork --logpath /var/log/mongodb_config.log --dbpath ../../databases/1B/config/ --port 27025
 
 3.3 mongos
 
-sudo ./mongos --fork --logpath /var/log/mongos.log --logappend --configdb localhost:27024 --port 27017
+192.168.0.100
+sudo ./mongos --fork --logpath /var/log/mongos.log --logappend --configdb 192.168.0.100:27025 --port 27017
 
 3.4 configure
 
 ./mongo localhost:27017/admin
-db.runCommand({addshard : "localhost:27021"});
-db.runCommand({addshard : "localhost:27022"});
-db.runCommand({addshard : "localhost:27023"});
+db.runCommand({addshard : "192.168.0.100:27021"});
+db.runCommand({addshard : "192.168.0.100:27022"});
+db.runCommand({addshard : "192.168.0.100:27023"});
+db.runCommand({addshard : "192.168.0.104:27021"});
+db.runCommand({addshard : "192.168.0.104:27022"});
+db.runCommand({addshard : "192.168.0.105:27021"});
+db.runCommand({addshard : "192.168.0.105:27022"});
 
 db.runCommand({enablesharding : "BIS_mongo_eval"});
 db.runCommand({shardcollection : "BIS_mongo_eval.measurings", key : { timestamp : 1}});
 
 3.5 admin
+
+./mongo localhost:27017/admin
+db.printShardingStatus()
+
+4 Sharding documents, 3 mongod instances, 1 config server, 1 mongos @VM1
+
+4.1 data nodes
+
+192.168.0.100
+
+sudo ./mongod --fork --logpath /var/log/mongodb1.log --logappend --dbpath ../../databases/1B/1 --port 27021
+sudo ./mongod --fork --logpath /var/log/mongodb2.log --logappend --dbpath ../../databases/1B/2 --port 27022
+sudo ./mongod --fork --logpath /var/log/mongodb3.log --logappend --dbpath ../../databases/1B/3 --port 27023
+
+4.2 config nodes
+
+192.168.0.100
+sudo ./mongod --configsvr --fork --logpath /var/log/mongodb_config.log --dbpath ../../databases/1B/config/ --port 27025
+
+4.3 mongos
+
+192.168.0.100
+sudo ./mongos --fork --logpath /var/log/mongos.log --logappend --configdb localhost:27025 --port 27017
+
+4.4 configure
+
+./mongo localhost:27017/admin
+db.runCommand({addshard : "192.168.0.100:27021"});
+db.runCommand({addshard : "192.168.0.100:27022"});
+db.runCommand({addshard : "192.168.0.100:27023"});
+
+db.runCommand({enablesharding : "BIS_mongo_eval"});
+db.runCommand({shardcollection : "BIS_mongo_eval.measurings", key : { timestamp : 1}});
+
+4.5 admin
 
 ./mongo localhost:27017/admin
 db.printShardingStatus()
