@@ -1,0 +1,25 @@
+> db.measurings.stats()
+{
+        "ns" : "BIS_mongo_eval.measurings",
+        "count" : 333199576,
+        "size" : 28519949084,
+        "avgObjSize" : 85.59419380533666,
+        "storageSize" : 35528597328,
+        "numExtents" : 47,
+        "nindexes" : 4,
+        "lastExtentSize" : 2146426864,
+        "paddingFactor" : 1,
+        "flags" : 1,
+        "totalIndexSize" : 55555756480,
+        "indexSizes" : {
+                "_id_" : 10810495248,
+                "a_1" : 16257837008,
+                "f_1" : 12581940112,
+                "b_1" : 15905484112
+        },
+        "ok" : 1
+}
+
+[junghanns@eum-prak-01 databases]$ du 1B
+4       1B/_tmp
+106854640 

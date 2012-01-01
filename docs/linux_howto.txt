@@ -97,9 +97,9 @@ sudo ./mongos --fork --logpath /var/log/mongos.log --logappend --configdb localh
 4.4 configure
 
 ./mongo localhost:27017/admin
-db.runCommand({addshard : "192.168.0.100:27021"});
-db.runCommand({addshard : "192.168.0.100:27022"});
-db.runCommand({addshard : "192.168.0.100:27023"});
+db.runCommand({addshard : "localhost:27021"});
+db.runCommand({addshard : "localhost:27022"});
+db.runCommand({addshard : "localhost:27023"});
 
 db.runCommand({enablesharding : "BIS_mongo_eval"});
 db.runCommand({shardcollection : "BIS_mongo_eval.measurings", key : { timestamp : 1}});
