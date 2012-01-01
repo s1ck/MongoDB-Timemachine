@@ -1,4 +1,4 @@
-Testbed 1 - Multiple Server
+Testbed 3 - Multiple Server
 
 Server 1
 
