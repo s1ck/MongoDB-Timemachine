@@ -62,7 +62,7 @@ db.printShardingStatus()
 4.1 data nodes
 
 @192.168.0.100
-sudo ./mongod --fork --logpath /var/log/mongodb1.log --logappend --dbpath ../../databases/1B/ --port 27017
+sudo ./mongod --fork --logpath /var/log/mongodb1.log --logappend --dbpath ../../databases/1B/ --port 27017 --nojournal
 
 4.5 admin
 
@@ -74,16 +74,19 @@ db.printShardingStatus()
 5.0 iptables
 
 @192.168.0.100
-sudo iptables -A INPUT -p tcp --dport 27017 -s 192.168.0.104 -j ACCEPT
-sudo iptables -A INPUT -p tcp --dport 27017 -s 192.168.0.105 -j ACCEPT
+sudo iptables -A INPUT -p all -s 192.168.0.104 -j ACCEPT
+sudo iptables -A INPUT -p all -s 192.168.0.105 -j ACCEPT
+sudo iptables -A INPUT -j REJECT --reject-with icmp-host-prohibited
 
 @192.168.0.104
-sudo iptables -A INPUT -p tcp --dport 27017 -s 192.168.0.100 -j ACCEPT
-sudo iptables -A INPUT -p tcp --dport 27017 -s 192.168.0.105 -j ACCEPT
+sudo iptables -A INPUT -p all -s 192.168.0.100 -j ACCEPT
+sudo iptables -A INPUT -p all -s 192.168.0.105 -j ACCEPT
+sudo iptables -A INPUT -j REJECT --reject-with icmp-host-prohibited
 
 @192.168.0.105
-sudo iptables -A INPUT -p tcp --dport 27017 -s 192.168.0.100 -j ACCEPT
-sudo iptables -A INPUT -p tcp --dport 27017 -s 192.168.0.104 -j ACCEPT
+sudo iptables -A INPUT -p all -s 192.168.0.100 -j ACCEPT
+sudo iptables -A INPUT -p all -s 192.168.0.104 -j ACCEPT
+sudo iptables -A INPUT -j REJECT --reject-with icmp-host-prohibited
 
 5.1 /etc/hosts
 
@@ -95,10 +98,10 @@ sudo iptables -A INPUT -p tcp --dport 27017 -s 192.168.0.104 -j ACCEPT
 5.2 data nodes
 
 @192.168.0.104
-sudo ./mongod --fork --logpath /var/log/mongodb_testbed3.log --logappend --dbpath ../../databases/testbed3 --port 27017
+sudo ./mongod --fork --logpath /var/log/mongodb_testbed3.log --logappend --dbpath ../../databases/testbed3 --port 27017 --nojournal
 
 @192.168.0.105
-sudo ./mongod --fork --logpath /var/log/mongodb_testbed3.log --logappend --dbpath ../../databases/testbed3 --port 27017
+sudo ./mongod --fork --logpath /var/log/mongodb_testbed3.log --logappend --dbpath ../../databases/testbed3 --port 27017 --nojournal
 
 5.3 config nodes
 
@@ -116,8 +119,16 @@ sudo ./mongos --fork --logpath /var/log/mongodb_testbed3_mongos.log --logappend 
 db.runCommand({addshard : "VM2:27017"});
 db.runCommand({addshard : "VM3:27017"});
 
+// enable sharding for the database
 db.runCommand({enablesharding : "BIS_mongo_eval"});
+// define a shard collection and the shard key(s)
 db.runCommand({shardcollection : "BIS_mongo_eval.measurings", key : { timestamp : 1}});
+// when using short value identifiers
+db.runCommand({shardcollection : "BIS_mongo_eval.measurings", key : { a : 1}});
+// when using multiple value identifiers as sharding key
+db.runCommand({shardcollection : "BIS_mongo_eval.measurings", key : { stationID:1,wrID:1,timestamp:1}});
+// or in short
+db.runCommand({shardcollection : "BIS_mongo_eval.measurings", key : { c:1,e:1,a:1}});
 
 5.6 admin
 
