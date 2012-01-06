@@ -394,14 +394,6 @@ public class MongoDB_Eval {
 		System.out.println("initializing connection...");
 		eval.initDatabase(MongoDB_Config.PATH);
 
-		// get the time range of the dataset
-		System.out.println("initializing time range...");
-		eval.initTimeRange();
-
-		// get the available datatypes
-		System.out.println("initializing available datatypes...");
-		eval.initDataTypes();
-
 		// create indexes (if not existing)
 		System.out.println("creating indexes...");
 		eval.createIndexes(eval.getDb());
@@ -422,6 +414,14 @@ public class MongoDB_Eval {
 			System.out.println("initializing available stations...");
 			eval.initStations();
 
+			// get the time range of the dataset
+			System.out.println("initializing time range...");
+			eval.initTimeRange();
+
+			// get the available datatypes
+			System.out.println("initializing available datatypes...");
+			eval.initDataTypes();
+			
 			// get the available datatypes
 			System.out.println("initializing available datatypes...");
 			eval.initDataTypes();
