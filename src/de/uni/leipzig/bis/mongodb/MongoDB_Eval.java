@@ -171,46 +171,27 @@ public class MongoDB_Eval {
 
 	public void createIndexes(DB mongoDB) {
 
-		// compound index on Station, Inverter and Datatype
-		String indexName = String.format("{%s:1,%s:1,%s:1}",
-				MongoDB_Config.STATION_ID, MongoDB_Config.SERIAL_NO,
-				MongoDB_Config.DATATYPE);
+		// compound index on station, inverter, datatype and timestamp
+		DBObject index = new BasicDBObject();
+		index.put(MongoDB_Config.STATION_ID, 1);
+		index.put(MongoDB_Config.SERIAL_NO, 1);
+		index.put(MongoDB_Config.DATATYPE, 1);
+		index.put(MongoDB_Config.TIMESTAMP, 1);
 
 		MongoDB_Queries.createIndex(mongoDB,
-				MongoDB_Config.COLLECTION_MEASURINGS, indexName);
-
-		// index on Timestamp
-		MongoDB_Queries.createIndex(mongoDB,
-				MongoDB_Config.COLLECTION_MEASURINGS, MongoDB_Config.TIMESTAMP);
-
-		// MongoDB_Queries.createIndex(mongoDB,
-		// MongoDB_Config.COLLECTION_MEASURINGS, MongoDB_Config.TIMESTAMP);
-		// MongoDB_Queries.createIndex(mongoDB,
-		// MongoDB_Config.COLLECTION_MEASURINGS, MongoDB_Config.DATATYPE);
-		// MongoDB_Queries.createIndex(mongoDB,
-		// MongoDB_Config.COLLECTION_MEASURINGS, MongoDB_Config.VALUE);
+				MongoDB_Config.COLLECTION_MEASURINGS, index);
 	}
 
 	public void dropIndexes(DB mongoDB) {
 
-		// compound index on Station, Inverter and Datatype
-		String indexName = String.format("{%s:1,%s:1,%s:1}",
-				MongoDB_Config.STATION_ID, MongoDB_Config.SERIAL_NO,
-				MongoDB_Config.DATATYPE);
+		DBObject index = new BasicDBObject();
+		index.put(MongoDB_Config.STATION_ID, 1);
+		index.put(MongoDB_Config.SERIAL_NO, 1);
+		index.put(MongoDB_Config.DATATYPE, 1);
+		index.put(MongoDB_Config.TIMESTAMP, 1);
 
 		MongoDB_Queries.dropIndex(mongoDB,
-				MongoDB_Config.COLLECTION_MEASURINGS, indexName);
-
-		// index on Timestamp
-		MongoDB_Queries.dropIndex(mongoDB,
-				MongoDB_Config.COLLECTION_MEASURINGS, MongoDB_Config.TIMESTAMP);
-
-		// MongoDB_Queries.dropIndex(mongoDB,
-		// MongoDB_Config.COLLECTION_MEASURINGS, MongoDB_Config.TIMESTAMP);
-		// MongoDB_Queries.dropIndex(mongoDB,
-		// MongoDB_Config.COLLECTION_MEASURINGS, MongoDB_Config.DATATYPE);
-		// MongoDB_Queries.dropIndex(mongoDB,
-		// MongoDB_Config.COLLECTION_MEASURINGS, MongoDB_Config.VALUE);
+				MongoDB_Config.COLLECTION_MEASURINGS, index);
 	}
 
 	/**
@@ -413,6 +394,14 @@ public class MongoDB_Eval {
 		System.out.println("initializing connection...");
 		eval.initDatabase(MongoDB_Config.PATH);
 
+		// get the time range of the dataset
+		System.out.println("initializing time range...");
+		eval.initTimeRange();
+
+		// get the available datatypes
+		System.out.println("initializing available datatypes...");
+		eval.initDataTypes();
+
 		// create indexes (if not existing)
 		System.out.println("creating indexes...");
 		eval.createIndexes(eval.getDb());
@@ -432,10 +421,6 @@ public class MongoDB_Eval {
 			// check which stations are available in the dataset
 			System.out.println("initializing available stations...");
 			eval.initStations();
-
-			// get the time range of the dataset
-			System.out.println("initializing time range...");
-			eval.initTimeRange();
 
 			// get the available datatypes
 			System.out.println("initializing available datatypes...");

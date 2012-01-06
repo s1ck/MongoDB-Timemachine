@@ -258,7 +258,6 @@ public class MongoDB_Queries {
 		projection.put(MongoDB_Config.TIMESTAMP, 1);
 
 		// run
-
 		long start = System.currentTimeMillis();
 		long result = (Long) measCollection.find(query, projection)
 				.sort(new BasicDBObject(MongoDB_Config.TIMESTAMP, 1)).limit(1)
@@ -319,6 +318,7 @@ public class MongoDB_Queries {
 		query.put(MongoDB_Config.DATATYPE, dataType);
 		query.put(MongoDB_Config.STATION_ID, stationInfo.getName());
 		query.put(MongoDB_Config.SERIAL_NO, serialNo);
+		// range
 		query.put(MongoDB_Config.TIMESTAMP,
 				new BasicDBObject("$gt", lowerBound).append("$lt", upperBound));
 
@@ -327,7 +327,6 @@ public class MongoDB_Queries {
 		mrCommand.setFinalize(finalize);
 
 		// run
-
 		long start = System.currentTimeMillis();
 		measCollection.mapReduce(mrCommand);
 		long diff = System.currentTimeMillis() - start;
@@ -384,6 +383,7 @@ public class MongoDB_Queries {
 		query.put(MongoDB_Config.DATATYPE, new BasicDBObject("$in", list));
 		query.put(MongoDB_Config.STATION_ID, stationInfo.getName());
 		query.put(MongoDB_Config.SERIAL_NO, serialNo);
+		// range
 		query.put(MongoDB_Config.TIMESTAMP,
 				new BasicDBObject("$gt", lowerBound).append("$lt", upperBound));
 
@@ -392,6 +392,7 @@ public class MongoDB_Queries {
 		mrCommand.setFinalize(finalize);
 
 		// run
+
 		long start = System.currentTimeMillis();
 		measCollection.mapReduce(mrCommand);
 		long diff = System.currentTimeMillis() - start;
@@ -465,6 +466,7 @@ public class MongoDB_Queries {
 		long diff = System.currentTimeMillis() - start;
 
 		// drop temporary data
+
 		temp.drop();
 
 		System.out.println(String.format("%s;%d;%d", stationInfo.getName(),
@@ -564,15 +566,15 @@ public class MongoDB_Queries {
 	 * @param indexName
 	 */
 	public static void createIndex(DB mongoDB, String collectionName,
-			String indexName) {
+			DBObject index) {
 		// get collection
 		DBCollection collection = mongoDB.getCollection(collectionName);
 
 		long start = System.currentTimeMillis();
-		collection.ensureIndex(indexName);
+		collection.ensureIndex(index);
 		long diff = System.currentTimeMillis() - start;
 
-		System.out.println(String.format("%s;%d", indexName, diff));
+		System.out.println(String.format("%s;%d", index, diff));
 	}
 
 	/**
@@ -583,15 +585,15 @@ public class MongoDB_Queries {
 	 * @param indexName
 	 */
 	public static void dropIndex(DB mongoDB, String collectionName,
-			String indexName) {
+			DBObject index) {
 		// get collection
 		DBCollection collection = mongoDB.getCollection(collectionName);
 
 		long start = System.currentTimeMillis();
-		collection.dropIndex(indexName + "_1");
+		collection.dropIndex(index);
 		long diff = System.currentTimeMillis() - start;
 
-		System.out.println(String.format("%s;%d", indexName, diff));
+		System.out.println(String.format("%s;%d", index, diff));
 	}
 
 	private static long processQuery(DBCollection coll, BasicDBObject query) {

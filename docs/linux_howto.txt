@@ -62,7 +62,7 @@ db.printShardingStatus()
 4.1 data nodes
 
 @192.168.0.100
-sudo ./mongod --fork --logpath /var/log/mongodb1.log --logappend --dbpath ../../databases/1B/ --port 27017 --nojournal
+sudo ./mongod --fork --logpath /var/log/mongodb1.log --logappend --dbpath ../../databases/testbed2 --port 27017 --nojournal
 
 4.5 admin
 
