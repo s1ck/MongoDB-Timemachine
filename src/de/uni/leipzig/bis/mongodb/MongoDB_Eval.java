@@ -67,6 +67,12 @@ public class MongoDB_Eval {
 	 * retrieval. Stations depend on the dataset.
 	 */
 	private List<StationInfo> availableStations;
+	/**
+	 * In each run the original available stations will be added to the
+	 * available stations with an attached run id. This is a workaround to avoid
+	 * distinct queries before each run.
+	 */
+	private List<StationInfo> originalStations;
 
 	private List<String> availableDataTypes;
 
@@ -106,6 +112,7 @@ public class MongoDB_Eval {
 		db = m.getDB(MongoDB_Config.DB);
 		// init the list
 		availableStations = new ArrayList<StationInfo>();
+		originalStations = new ArrayList<StationInfo>();
 		// init the available datatypes
 		availableDataTypes = new ArrayList<String>();
 
@@ -135,6 +142,21 @@ public class MongoDB_Eval {
 
 			// store the information
 			availableStations.add(new StationInfo(station, wrCount));
+			originalStations.add(new StationInfo(station, wrCount));
+		}
+	}
+
+	/**
+	 * Adds any original station (e.g. singwitz) plus the current run-id to the
+	 * available stations, so these will be available in the next test run.
+	 * 
+	 * @param globalRun
+	 */
+	public void updateStations(int globalRun) {
+		for (StationInfo station : originalStations) {
+			availableStations.add(new StationInfo(station.getName().substring(
+					0, station.getName().length() - 1)
+					+ Integer.toString(globalRun), station.getWrCount()));
 		}
 	}
 
@@ -410,21 +432,23 @@ public class MongoDB_Eval {
 				eval.importData(eval.getDataPath(), eval.getDb(), globalRun);
 			}
 
-			// check which stations are available in the dataset
-			System.out.println("initializing available stations...");
-			eval.initStations();
+			if (globalRun == 1) { // only necessary after the first import
 
-			// get the time range of the dataset
-			System.out.println("initializing time range...");
-			eval.initTimeRange();
+				// check which stations are available in the dataset
+				System.out.println("initializing available stations...");
+				eval.initStations();
 
-			// get the available datatypes
-			System.out.println("initializing available datatypes...");
-			eval.initDataTypes();
-			
-			// get the available datatypes
-			System.out.println("initializing available datatypes...");
-			eval.initDataTypes();
+				// get the time range of the dataset
+				System.out.println("initializing time range...");
+				eval.initTimeRange();
+
+				// get the available datatypes
+				System.out.println("initializing available datatypes...");
+				eval.initDataTypes();
+			} else {
+				System.out.println("updating available stations...");
+				eval.updateStations(globalRun);
+			}
 
 			// process the benchmark
 			System.out.println("processing the benchmark...");
