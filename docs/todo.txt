@@ -7,10 +7,12 @@
 - Benchmarking Queries
 	- single machine / single instance 								- done
 	- single machine / multiple instance 							- done
-	- multiple machines / multiple instances
+	- multiple machines / multiple instances						- done
+	- single machine / single instance (random stationsIDs)
 - sort internals evaluieren (insbesondere bei min / max Abfragen)
 - Query 9 formulieren
 - 1-2 Seiten Ausarbeitung GraphDB vs Documentstore
 - Abschlusspräsentation vorbereiten
+
 
 

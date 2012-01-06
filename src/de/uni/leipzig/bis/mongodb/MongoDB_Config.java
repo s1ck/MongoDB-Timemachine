@@ -77,6 +77,10 @@ public class MongoDB_Config {
 	 */
 	public static int GLOBAL_RUNS;
 	/**
+	 * if set to true, the total range is used in range queries on timestamp
+	 */
+	public static boolean USE_TOTAL_RANGE;
+	/**
 	 * Defines the number of randomized benchmark runs
 	 */
 	public static int LOCAL_RUNS;
@@ -142,7 +146,8 @@ public class MongoDB_Config {
 					.getProperty("eval.globalruns"));
 			LOCAL_RUNS = Integer.parseInt(properties
 					.getProperty("eval.localruns"));
-			DAYS = Integer.parseInt(properties.getProperty("eval.days"));			
+			DAYS = Integer.parseInt(properties.getProperty("eval.days"));
+			USE_TOTAL_RANGE = Boolean.parseBoolean(properties.getProperty("eval.usetotalrange"));
 			RANDOM_SEED = Integer.parseInt(properties.getProperty("eval.seed"));
 			IMPORT = Boolean.parseBoolean(properties.getProperty("eval.import"));
 		}

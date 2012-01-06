@@ -170,21 +170,47 @@ public class MongoDB_Eval {
 	}
 
 	public void createIndexes(DB mongoDB) {
+
+		// compound index on Station, Inverter and Datatype
+		String indexName = String.format("{%s:1,%s:1,%s:1}",
+				MongoDB_Config.STATION_ID, MongoDB_Config.SERIAL_NO,
+				MongoDB_Config.DATATYPE);
+
+		MongoDB_Queries.createIndex(mongoDB,
+				MongoDB_Config.COLLECTION_MEASURINGS, indexName);
+
+		// index on Timestamp
 		MongoDB_Queries.createIndex(mongoDB,
 				MongoDB_Config.COLLECTION_MEASURINGS, MongoDB_Config.TIMESTAMP);
-		MongoDB_Queries.createIndex(mongoDB,
-				MongoDB_Config.COLLECTION_MEASURINGS, MongoDB_Config.DATATYPE);
-		MongoDB_Queries.createIndex(mongoDB,
-				MongoDB_Config.COLLECTION_MEASURINGS, MongoDB_Config.VALUE);
+
+		// MongoDB_Queries.createIndex(mongoDB,
+		// MongoDB_Config.COLLECTION_MEASURINGS, MongoDB_Config.TIMESTAMP);
+		// MongoDB_Queries.createIndex(mongoDB,
+		// MongoDB_Config.COLLECTION_MEASURINGS, MongoDB_Config.DATATYPE);
+		// MongoDB_Queries.createIndex(mongoDB,
+		// MongoDB_Config.COLLECTION_MEASURINGS, MongoDB_Config.VALUE);
 	}
 
 	public void dropIndexes(DB mongoDB) {
+
+		// compound index on Station, Inverter and Datatype
+		String indexName = String.format("{%s:1,%s:1,%s:1}",
+				MongoDB_Config.STATION_ID, MongoDB_Config.SERIAL_NO,
+				MongoDB_Config.DATATYPE);
+
+		MongoDB_Queries.dropIndex(mongoDB,
+				MongoDB_Config.COLLECTION_MEASURINGS, indexName);
+
+		// index on Timestamp
 		MongoDB_Queries.dropIndex(mongoDB,
 				MongoDB_Config.COLLECTION_MEASURINGS, MongoDB_Config.TIMESTAMP);
-		MongoDB_Queries.dropIndex(mongoDB,
-				MongoDB_Config.COLLECTION_MEASURINGS, MongoDB_Config.DATATYPE);
-		MongoDB_Queries.dropIndex(mongoDB,
-				MongoDB_Config.COLLECTION_MEASURINGS, MongoDB_Config.VALUE);
+
+		// MongoDB_Queries.dropIndex(mongoDB,
+		// MongoDB_Config.COLLECTION_MEASURINGS, MongoDB_Config.TIMESTAMP);
+		// MongoDB_Queries.dropIndex(mongoDB,
+		// MongoDB_Config.COLLECTION_MEASURINGS, MongoDB_Config.DATATYPE);
+		// MongoDB_Queries.dropIndex(mongoDB,
+		// MongoDB_Config.COLLECTION_MEASURINGS, MongoDB_Config.VALUE);
 	}
 
 	/**
@@ -262,7 +288,7 @@ public class MongoDB_Eval {
 	 * @param mongoDB
 	 *            the mongoDB instance
 	 */
-	public void importData(String csvFile, DB mongoDB) {
+	public void importData(String csvFile, DB mongoDB, int globalRun) {
 		List<BasicDBObject> dbObjectPuffer = new ArrayList<BasicDBObject>(
 				MongoDB_Config.BUFFER_SIZE);
 		BufferedReader bf;
@@ -276,7 +302,7 @@ public class MongoDB_Eval {
 			long diff = 0L;
 			while ((line = bf.readLine()) != null) {
 				n++;
-				dbObjectPuffer.add(createDBObjectFromData(line));
+				dbObjectPuffer.add(createDBObjectFromData(line, globalRun));
 				if (dbObjectPuffer.size() == MongoDB_Config.BUFFER_SIZE) {
 					// store data and clear buffer
 					writeDataToDB(dbObjectPuffer, mongoDB);
@@ -313,7 +339,7 @@ public class MongoDB_Eval {
 	 *            CSV data information about the database object
 	 * @return the Database Object
 	 */
-	private BasicDBObject createDBObjectFromData(String line) {
+	private BasicDBObject createDBObjectFromData(String line, int globalRun) {
 		String[] documentData = line.split(";");
 
 		BasicDBObject dbObj = new BasicDBObject();
@@ -326,7 +352,8 @@ public class MongoDB_Eval {
 		if (identifier != null) {
 			String[] identifierData = identifier.split("\\.");
 			// station_ID (Anlagenname)
-			dbObj.put(MongoDB_Config.STATION_ID, identifierData[0]);
+			dbObj.put(MongoDB_Config.STATION_ID,
+					String.format("%s_%d", identifierData[0], globalRun));
 			// partID (Bauteilart)
 			dbObj.put(MongoDB_Config.PART_ID, identifierData[1]);
 			// serial number (laufende Nummer)
@@ -382,25 +409,25 @@ public class MongoDB_Eval {
 		MongoDB_Config.initConfig((args.length > 0) ? args[0]
 				: "config/mongodb.properties");
 
+		// initialize connection to mongodb and database
+		System.out.println("initializing connection...");
+		eval.initDatabase(MongoDB_Config.PATH);
+
+		// create indexes (if not existing)
+		System.out.println("creating indexes...");
+		eval.createIndexes(eval.getDb());
+
 		for (int globalRun = 1; globalRun <= MongoDB_Config.GLOBAL_RUNS; globalRun++) {
 
 			System.out.println(String.format(
 					"Starting global run %d using dataset %s", globalRun,
 					MongoDB_Config.PATH));
 
-			// initialize connection to mongodb and database
-			System.out.println("initializing connection...");
-			eval.initDatabase(MongoDB_Config.PATH);
-
 			if (MongoDB_Config.IMPORT) {
 				// data import
 				System.out.println("importing data...");
-				eval.importData(eval.getDataPath(), eval.getDb());
+				eval.importData(eval.getDataPath(), eval.getDb(), globalRun);
 			}
-
-			// create indexes (if not existing)
-			System.out.println("creating indexes...");
-			eval.createIndexes(eval.getDb());
 
 			// check which stations are available in the dataset
 			System.out.println("initializing available stations...");

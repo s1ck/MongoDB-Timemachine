@@ -14,29 +14,31 @@ data.path=data/380K.csv
 # data identifiers
 
 # long identifiers
-data.timestamp=timestamp
-data.value=value
-data.stationid=stationID
-data.partid=partID
-data.wrid=wrID
-data.datatype=datatype
-data.optstring=opt_string
-data.stringid=stringID
+#data.timestamp=timestamp
+#data.value=value
+#data.stationid=stationID
+#data.partid=partID
+#data.wrid=wrID
+#data.datatype=datatype
+#data.optstring=opt_string
+#data.stringid=stringID
 
 # short identifiers
-#data.timestamp=a
-#data.value=b
-#data.stationid=c
-#data.partid=d
-#data.wrid=e
-#data.datatype=f
-#data.optstring=g
-#data.stringid=h
+data.timestamp=a
+data.value=b
+data.stationid=c
+data.partid=d
+data.wrid=e
+data.datatype=f
+data.optstring=g
+data.stringid=h
 
 # evaluation properties
 
 # complete runs including import and benchmarks
 eval.globalruns=2
+# if set to true, the total range is used in range queries on timestamp
+eval.usetotalrange=true
 # number of randomized runs for each benchmark
 eval.localruns=10
 # number of days for range queries

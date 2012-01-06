@@ -107,8 +107,10 @@ public class MongoDB_Queries {
 		StationInfo stationInfo = availableStations.get(r
 				.nextInt(availableStations.size()));
 		int serialNo = r.nextInt(stationInfo.getWrCount());
-		Long lowerBound = getRandomInRange(lowerTimeBound, upperTimeBound, true);
-		Long upperBound = getUpperBound(lowerBound, MongoDB_Config.DAYS);
+		Long lowerBound = (MongoDB_Config.USE_TOTAL_RANGE) ? lowerTimeBound
+				: getRandomInRange(lowerTimeBound, upperTimeBound, true);
+		Long upperBound = (MongoDB_Config.USE_TOTAL_RANGE) ? upperTimeBound
+				: getUpperBound(lowerBound, MongoDB_Config.DAYS);
 
 		// range query
 		BasicDBObject rangeQuery = new BasicDBObject();
@@ -122,8 +124,9 @@ public class MongoDB_Queries {
 
 		long diff = processQuery(measCollection, rangeQuery);
 
-		System.out.println(String.format("%s;%d;%d;%d;%d",
-				stationInfo.getName(), serialNo, lowerBound, upperBound, diff));
+		System.out.println(String.format("%s;%d;%s;%d;%d;%d",
+				stationInfo.getName(), serialNo, dataType, lowerBound,
+				upperBound, diff));
 	}
 
 	/**
@@ -165,8 +168,8 @@ public class MongoDB_Queries {
 		projection.put(MongoDB_Config.VALUE, 1);
 
 		long diff = processQuery(measCollection, exactQuery, projection);
-		System.out.println(String.format("%s;%d;%d;%d", stationInfo.getName(),
-				serialNo, timestamp, diff));
+		System.out.println(String.format("%s;%d;%s;%d;%d",
+				stationInfo.getName(), serialNo, dataType, timestamp, diff));
 	}
 
 	/**
@@ -191,8 +194,10 @@ public class MongoDB_Queries {
 		StationInfo stationInfo = availableStations.get(r
 				.nextInt(availableStations.size()));
 		int serialNo = r.nextInt(stationInfo.getWrCount());
-		Long lowerBound = getRandomInRange(lowerTimeBound, upperTimeBound, true);
-		Long upperBound = getUpperBound(lowerBound, MongoDB_Config.DAYS);
+		Long lowerBound = (MongoDB_Config.USE_TOTAL_RANGE) ? lowerTimeBound
+				: getRandomInRange(lowerTimeBound, upperTimeBound, true);
+		Long upperBound = (MongoDB_Config.USE_TOTAL_RANGE) ? upperTimeBound
+				: getUpperBound(lowerBound, MongoDB_Config.DAYS);
 
 		// build query
 
@@ -212,8 +217,9 @@ public class MongoDB_Queries {
 		// run
 		long diff = processQuery(measCollection, rangeQuery, projection);
 
-		System.out.println(String.format("%s;%d;%d;%d;%d",
-				stationInfo.getName(), serialNo, lowerBound, upperBound, diff));
+		System.out.println(String.format("%s;%d;%s;%d;%d;%d",
+				stationInfo.getName(), serialNo, dataType, lowerBound,
+				upperBound, diff));
 	}
 
 	/**
@@ -259,8 +265,8 @@ public class MongoDB_Queries {
 				.next().get(MongoDB_Config.TIMESTAMP);
 		long diff = System.currentTimeMillis() - start;
 
-		System.out.println(String.format("%s;%d;%d;%d", stationInfo.getName(),
-				serialNo, result, diff));
+		System.out.println(String.format("%s;%d;%s;%d;%d",
+				stationInfo.getName(), serialNo, dataType, result, diff));
 	}
 
 	/**
@@ -286,8 +292,10 @@ public class MongoDB_Queries {
 		StationInfo stationInfo = availableStations.get(r
 				.nextInt(availableStations.size()));
 		int serialNo = r.nextInt(stationInfo.getWrCount());
-		Long lowerBound = getRandomInRange(lowerTimeBound, upperTimeBound, true);
-		Long upperBound = getUpperBound(lowerBound, MongoDB_Config.DAYS);
+		Long lowerBound = (MongoDB_Config.USE_TOTAL_RANGE) ? lowerTimeBound
+				: getRandomInRange(lowerTimeBound, upperTimeBound, true);
+		Long upperBound = (MongoDB_Config.USE_TOTAL_RANGE) ? upperTimeBound
+				: getUpperBound(lowerBound, MongoDB_Config.DAYS);
 
 		// configure Map Reduce
 
@@ -324,8 +332,9 @@ public class MongoDB_Queries {
 		measCollection.mapReduce(mrCommand);
 		long diff = System.currentTimeMillis() - start;
 
-		System.out.println(String.format("%s;%d;%d;%d;%d",
-				stationInfo.getName(), serialNo, lowerBound, upperBound, diff));
+		System.out.println(String.format("%s;%d;%s;%d;%d;%d",
+				stationInfo.getName(), serialNo, dataType, lowerBound,
+				upperBound, diff));
 	}
 
 	/**
@@ -349,8 +358,10 @@ public class MongoDB_Queries {
 		StationInfo stationInfo = availableStations.get(r
 				.nextInt(availableStations.size()));
 		int serialNo = r.nextInt(stationInfo.getWrCount());
-		Long lowerBound = getRandomInRange(lowerTimeBound, upperTimeBound, true);
-		Long upperBound = getUpperBound(lowerBound, MongoDB_Config.DAYS);
+		Long lowerBound = (MongoDB_Config.USE_TOTAL_RANGE) ? lowerTimeBound
+				: getRandomInRange(lowerTimeBound, upperTimeBound, true);
+		Long upperBound = (MongoDB_Config.USE_TOTAL_RANGE) ? upperTimeBound
+				: getUpperBound(lowerBound, MongoDB_Config.DAYS);
 
 		// configure Map Reduce
 
@@ -381,7 +392,6 @@ public class MongoDB_Queries {
 		mrCommand.setFinalize(finalize);
 
 		// run
-
 		long start = System.currentTimeMillis();
 		measCollection.mapReduce(mrCommand);
 		long diff = System.currentTimeMillis() - start;
