@@ -17,3 +17,8 @@
         },
         "ok" : 1
 }
+
+[junghanns@eum-prak-01 databases]$ du testbed4/
+4       testbed4/_tmp
+94277992        testbed4/
+
