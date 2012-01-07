@@ -10,7 +10,4 @@ mongod instance (--nojournal)
 
 Indexes
 
-stationID
-datatype
-timestamp
-value
+compund index on stationID, inverterID, datatype and timestamp

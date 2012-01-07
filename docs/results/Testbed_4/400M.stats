@@ -1,0 +1,19 @@
+> db.measurings.stats()
+{
+        "ns" : "BIS_mongo_eval.measurings",
+        "count" : 405653636,
+        "size" : 35479802848,
+        "avgObjSize" : 87.46329306413514,
+        "storageSize" : 44114304784,
+        "numExtents" : 51,
+        "nindexes" : 2,
+        "lastExtentSize" : 2146426864,
+        "paddingFactor" : 1,
+        "flags" : 1,
+        "totalIndexSize" : 44796361232,
+        "indexSizes" : {
+                "_id_" : 13161340528,
+                "c_1_e_1_f_1_a_1" : 31635020704
+        },
+        "ok" : 1
+}
