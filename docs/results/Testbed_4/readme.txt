@@ -1,4 +1,4 @@
-Testbed 2 - Single Server
+Testbed 4 - Single Server
 
 CPU: 4x Intel(R) Xeon(R) CPU E5649  @ 2.53GHz
 RAM: 6GB
